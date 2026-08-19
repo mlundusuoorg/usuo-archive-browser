@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>USUO Archive</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:"Segoe UI",Arial,sans-serif;background:#f3f4f6;color:#1f2937;min-height:100vh}
+
+    /* Header */
+    header{background:#1F4E79;color:#fff;padding:0 24px;height:56px;display:flex;align-items:center;
+           justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2);position:sticky;top:0;z-index:100}
+    .hd-left{display:flex;align-items:center;gap:12px}
+    .hd-logo{font-size:18px;font-weight:700}
+    .hd-sub{font-size:13px;color:#BDD7EE;border-left:1px solid #2E75B6;padding-left:12px}
+    .user-info{display:flex;align-items:center;gap:10px;font-size:13px;color:#BDD7EE}
+    .user-avatar{width:30px;height:30px;background:#2E75B6;border-radius:50%;display:flex;
+                 align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff}
+    .sign-out{background:transparent;border:1px solid #2E75B6;color:#BDD7EE;padding:4px 10px;
+              border-radius:4px;cursor:pointer;font-size:12px;transition:all .15s}
+    .sign-out:hover{background:#2E75B6;color:#fff}
+
+    /* Login */
+    #login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;
+                  min-height:calc(100vh - 56px);padding:40px 20px}
+    .login-card{background:#fff;border-radius:12px;padding:48px 40px;max-width:420px;width:100%;
+                text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+    .login-icon{width:64px;height:64px;background:#DEEAF1;border-radius:50%;margin:0 auto 20px;
+                display:flex;align-items:center;justify-content:center;font-size:28px}
+    .login-card h2{font-size:22px;color:#1F4E79;margin-bottom:8px}
+    .login-card p{color:#6b7280;font-size:14px;margin-bottom:28px;line-height:1.5}
+    .ms-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+            padding:12px 20px;background:#0078d4;color:#fff;border:none;border-radius:6px;
+            font-size:15px;font-weight:600;cursor:pointer;text-decoration:none;transition:background .15s}
+    .ms-btn:hover{background:#006cbe}
+
+    /* App */
+    #app-screen{display:none}
+
+    /* Toolbar */
+    .toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 24px;
+             display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .breadcrumb{display:flex;align-items:center;gap:4px;flex:1;flex-wrap:wrap;font-size:13px}
+    .bc-item{color:#2E75B6;cursor:pointer;padding:2px 6px;border-radius:3px;transition:background .1s}
+    .bc-item:hover{background:#DEEAF1}
+    .bc-item.current{color:#374151;cursor:default;font-weight:500}
+    .bc-item.current:hover{background:none}
+    .bc-sep{color:#9ca3af}
+    .search-box{padding:6px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;
+                width:220px;outline:none;transition:border-color .15s}
+    .search-box:focus{border-color:#2E75B6}
+
+    /* Root cards (top-level view) */
+    .root-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;
+               padding:24px;max-width:1200px;margin:0 auto}
+    .root-card{background:#fff;border-radius:10px;padding:24px 20px;cursor:pointer;
+               box-shadow:0 1px 4px rgba(0,0,0,.07);transition:all .15s;
+               display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;
+               border:2px solid transparent}
+    .root-card:hover{border-color:#2E75B6;box-shadow:0 4px 16px rgba(31,78,121,.12);transform:translateY(-2px)}
+    .root-card-icon{font-size:48px}
+    .root-card-name{font-size:15px;font-weight:600;color:#1F4E79}
+    .root-card-desc{font-size:12px;color:#6b7280;line-height:1.4}
+
+    /* File list */
+    .container{padding:24px;max-width:1200px;margin:0 auto}
+    .file-list{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden}
+    .fl-header{display:grid;grid-template-columns:1fr 160px 140px;padding:10px 20px;
+               background:#f9fafb;border-bottom:1px solid #e5e7eb;font-size:12px;
+               font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px}
+    .fl-item{display:grid;grid-template-columns:1fr 160px 140px;padding:11px 20px;
+             border-bottom:1px solid #f3f4f6;align-items:center;transition:background .1s;cursor:pointer}
+    .fl-item:last-child{border-bottom:none}
+    .fl-item:hover{background:#f8fafc}
+    .fl-item.folder:hover{background:#EFF6FF}
+    .file-name{display:flex;align-items:center;gap:10px;font-size:14px}
+    .file-icon{font-size:18px;flex-shrink:0}
+    .file-label{color:#1f2937}
+    .folder .file-label{color:#1F4E79;font-weight:500}
+    .file-date{font-size:13px;color:#6b7280}
+    .file-size{font-size:13px;color:#6b7280;display:flex;align-items:center;
+               justify-content:flex-end;gap:8px}
+    .dl-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+            background:#DEEAF1;color:#1F4E79;border:none;border-radius:4px;
+            font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+    .dl-btn:hover{background:#BDD7EE}
+
+    /* States */
+    .loading-state,.empty-state,.error-state{padding:60px 20px;text-align:center;color:#6b7280}
+    .spinner{width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#2E75B6;
+             border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .state-icon{font-size:40px;margin-bottom:12px}
+    .error-state{color:#dc2626}
+    .stats-bar{display:flex;gap:20px;padding:12px 0 0;font-size:12px;color:#9ca3af}
+
+    @media(max-width:600px){
+      .fl-header,.fl-item{grid-template-columns:1fr 100px}
+      .file-date{display:none}
+      .hd-sub{display:none}
+      .search-box{width:150px}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hd-left">
+    <div class="hd-logo">🎼 USUO</div>
+    <div class="hd-sub">Archive Portal</div>
+  </div>
+  <div class="user-info" id="user-info" style="display:none">
+    <div class="user-avatar" id="user-avatar">?</div>
+    <span id="user-name"></span>
+    <button class="sign-out" onclick="signOut()">Sign out</button>
+  </div>
+</header>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-icon">🗂️</div>
+    <h2>USUO Archive Portal</h2>
+    <p>Secure read-only access to USUO production and shared archives.<br/>
+       Sign in with your USUO Microsoft 365 account.</p>
+    <a class="ms-btn" href="/.auth/login/aad?post_login_redirect_uri=/">
+      <span>⊞</span> Sign in with Microsoft
+    </a>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app-screen">
+  <div class="toolbar">
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <input class="search-box" type="text" id="search-input"
+           placeholder="🔍 Search…" oninput="filterItems(this.value)"/>
+  </div>
+  <div id="main-content"></div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const STORAGE_ACCOUNT = "usuoarchive";
+const CONTAINER       = "usuo-archive";
+
+// Top-level folders — matches what's in the container
+const ROOT_FOLDERS = [
+  {
+    key:   "ProdShared",
+    icon:  "🎭",
+    name:  "ProdShared Archive",
+    desc:  "Production photos, graphics, costume, prop, and show files"
+  },
+  {
+    key:   "Share",
+    icon:  "📂",
+    name:  "Share Archive",
+    desc:  "General shared drive historical files from AHFS02V"
+  },
+  {
+    key:   "PS-Archive",
+    icon:  "🏛️",
+    name:  "PS Archive",
+    desc:  "Historical files from the PS site file server"
+  },
+  {
+    key:   "AH-Archive",
+    icon:  "🎵",
+    name:  "AH Archive",
+    desc:  "Historical files from the Abravanel Hall site"
+  },
+];
+
+let currentPath = null;   // null = root view, string = inside a folder
+let allItems    = [];
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+async function checkAuth() {
+  try {
+    const res = await fetch("/.auth/me");
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.clientPrincipal || null;
+  } catch { return null; }
+}
+function signOut() { window.location.href = "/.auth/logout?post_logout_redirect_uri=/"; }
+
+// ── Blob listing ──────────────────────────────────────────────────────────────
+async function listBlobs(prefix) {
+  const params = new URLSearchParams({ prefix: prefix || "" });
+  const res = await fetch(`/api/listblobs?${params}`);
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return (await res.json()).items || [];
+}
+
+// ── Download ──────────────────────────────────────────────────────────────────
+async function downloadFile(path, name) {
+  const res  = await fetch(`/api/download?path=${encodeURIComponent(path)}`);
+  const data = await res.json();
+  const a    = Object.assign(document.createElement("a"),
+                 { href: data.url, download: name, target: "_blank" });
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function getIcon(name, isFolder) {
+  if (isFolder) return "📁";
+  const ext = name.split(".").pop().toLowerCase();
+  return { pdf:"📄",doc:"📝",docx:"📝",xls:"📊",xlsx:"📊",ppt:"📋",pptx:"📋",
+           jpg:"🖼️",jpeg:"🖼️",png:"🖼️",gif:"🖼️",tif:"🖼️",tiff:"🖼️",
+           mp4:"🎬",mov:"🎬",avi:"🎬",mp3:"🎵",wav:"🎵",
+           zip:"📦",rar:"📦",txt:"📃",csv:"📊",ai:"🎨",psd:"🎨" }[ext] || "📄";
+}
+function fmtSize(b) {
+  if (!b) return "—";
+  if (b<1024) return b+" B";
+  if (b<1048576) return (b/1024).toFixed(1)+" KB";
+  if (b<1073741824) return (b/1048576).toFixed(1)+" MB";
+  return (b/1073741824).toFixed(2)+" GB";
+}
+function fmtDate(d) {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"});
+}
+
+// ── Breadcrumb ────────────────────────────────────────────────────────────────
+function renderBreadcrumb(path) {
+  const el    = document.getElementById("breadcrumb");
+  const parts = path ? path.split("/").filter(Boolean) : [];
+  let html    = `<span class="bc-item ${!path?"current":""}" onclick="goRoot()">🏠 Archives</span>`;
+  let built   = "";
+  parts.forEach((p, i) => {
+    built += (built?"/":"") + p;
+    const isCur = i === parts.length - 1;
+    const b = built;
+    html += `<span class="bc-sep">›</span>
+             <span class="bc-item ${isCur?"current":""}"
+                   onclick="navigateTo('${b}')">${p}</span>`;
+  });
+  el.innerHTML = html;
+}
+
+// ── Root view ─────────────────────────────────────────────────────────────────
+function renderRoot() {
+  currentPath = null;
+  document.getElementById("search-input").value = "";
+  renderBreadcrumb("");
+
+  const html = `<div class="root-grid">
+    ${ROOT_FOLDERS.map(f => `
+      <div class="root-card" onclick="navigateTo('${f.key}')">
+        <div class="root-card-icon">${f.icon}</div>
+        <div class="root-card-name">${f.name}</div>
+        <div class="root-card-desc">${f.desc}</div>
+      </div>`).join("")}
+  </div>`;
+  document.getElementById("main-content").innerHTML = html;
+}
+function goRoot() { renderRoot(); }
+
+// ── Folder view ───────────────────────────────────────────────────────────────
+async function navigateTo(path) {
+  currentPath = path;
+  document.getElementById("search-input").value = "";
+  renderBreadcrumb(path);
+
+  document.getElementById("main-content").innerHTML = `
+    <div class="container">
+      <div class="file-list">
+        <div class="loading-state"><div class="spinner"></div><div>Loading…</div></div>
+      </div>
+    </div>`;
+
+  try {
+    const prefix = path ? path + "/" : "";
+    allItems     = await listBlobs(prefix);
+    renderItems(allItems);
+  } catch (err) {
+    document.getElementById("main-content").innerHTML = `
+      <div class="container"><div class="file-list">
+        <div class="error-state">
+          <div class="state-icon">⚠️</div>
+          <div>Failed to load folder contents.</div>
+          <div style="font-size:12px;margin-top:8px">${err.message}</div>
+        </div>
+      </div></div>`;
+  }
+}
+
+function renderItems(items) {
+  const folders = items.filter(i=> i.isFolder).sort((a,b)=>a.name.localeCompare(b.name));
+  const files   = items.filter(i=>!i.isFolder).sort((a,b)=>a.name.localeCompare(b.name));
+  const sorted  = [...folders, ...files];
+
+  if (!sorted.length) {
+    document.getElementById("main-content").innerHTML = `
+      <div class="container"><div class="file-list">
+        <div class="empty-state"><div class="state-icon">📭</div><div>This folder is empty</div></div>
+      </div></div>`;
+    return;
+  }
+
+  let rows = `<div class="fl-header">
+    <div>Name</div><div>Modified</div><div style="text-align:right">Size</div>
+  </div>`;
+
+  sorted.forEach(item => {
+    const icon = getIcon(item.name, item.isFolder);
+    if (item.isFolder) {
+      rows += `<div class="fl-item folder" onclick="navigateTo('${item.path}')">
+        <div class="file-name"><span class="file-icon">${icon}</span>
+          <span class="file-label">${item.name}</span></div>
+        <div class="file-date">—</div>
+        <div class="file-size">—</div>
+      </div>`;
+    } else {
+      const p = item.path.replace(/'/g,"\\'");
+      const n = item.name.replace(/'/g,"\\'");
+      rows += `<div class="fl-item" onclick="downloadFile('${p}','${n}')">
+        <div class="file-name"><span class="file-icon">${icon}</span>
+          <span class="file-label">${item.name}</span></div>
+        <div class="file-date">${fmtDate(item.lastModified)}</div>
+        <div class="file-size">
+          <span>${fmtSize(item.size)}</span>
+          <button class="dl-btn"
+            onclick="event.stopPropagation();downloadFile('${p}','${n}')">⬇ Download</button>
+        </div>
+      </div>`;
+    }
+  });
+
+  const totalSize = files.reduce((s,f)=>s+(f.size||0),0);
+  document.getElementById("main-content").innerHTML = `
+    <div class="container">
+      <div class="file-list">${rows}</div>
+      <div class="stats-bar">
+        <span>📁 ${folders.length} folder${folders.length!==1?"s":""}</span>
+        <span>📄 ${files.length} file${files.length!==1?"s":""}</span>
+        <span>💾 ${fmtSize(totalSize)}</span>
+      </div>
+    </div>`;
+}
+
+function filterItems(q) {
+  if (currentPath === null) return; // don't filter root cards
+  if (!q) { renderItems(allItems); return; }
+  renderItems(allItems.filter(i=>i.name.toLowerCase().includes(q.toLowerCase())));
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  const principal = await checkAuth();
+  if (!principal) {
+    document.getElementById("login-screen").style.display = "flex";
+    return;
+  }
+  const name    = principal.userDetails || principal.userId || "User";
+  const initials= name.split(" ").map(p=>p[0]).join("").toUpperCase().slice(0,2);
+  document.getElementById("user-name").textContent   = name;
+  document.getElementById("user-avatar").textContent = initials;
+  document.getElementById("user-info").style.display = "flex";
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app-screen").style.display   = "block";
+  renderRoot();
+}
+
+init();
+</script>
+</body>
+</html>
