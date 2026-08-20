@@ -178,18 +178,18 @@
           <div class="download-name">📄 USUO Archive Portal — Staff User Guide</div>
           <div class="download-desc">End-user documentation covering login, browsing, downloading, and troubleshooting. Distribute to all staff.</div>
         </div>
-        <a class="card-btn btn-primary" href="/api/download-it-file?file=USUO_Archive_Portal_User_Guide.docx" download>
+        <button class="card-btn btn-primary" onclick="downloadDoc('it-docs/USUO_Archive_Portal_User_Guide.docx','USUO_Archive_Portal_User_Guide.docx')">
           ⬇ Download .docx
-        </a>
+        </button>
       </div>
       <div class="download-row">
         <div class="download-info">
           <div class="download-name">⚙️ Build-ArchiveSearchIndex.ps1</div>
           <div class="download-desc">PowerShell script to crawl all archive sections and rebuild the global search index. Run after adding new files to the archive.</div>
         </div>
-        <a class="card-btn btn-secondary" href="/api/download-it-file?file=Build-ArchiveSearchIndex.ps1" download>
+        <button class="card-btn btn-secondary" onclick="downloadDoc('it-docs/Build-ArchiveSearchIndex.ps1','Build-ArchiveSearchIndex.ps1')">
           ⬇ Download .ps1
-        </a>
+        </button>
       </div>
     </div>
   </div>
@@ -356,6 +356,18 @@ function copyCode(btn) {
   });
 }
 
+
+async function downloadDoc(path, name) {
+  try {
+    const res  = await fetch('/api/download?path=' + encodeURIComponent(path));
+    const data = await res.json();
+    const a    = Object.assign(document.createElement('a'),
+                   { href: data.url, download: name, target: '_blank' });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  } catch(e) {
+    alert('Download failed: ' + e.message);
+  }
+}
 async function init() {
   const principal = await checkAuth();
   if (!principal) {
