@@ -8,11 +8,10 @@
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:"Segoe UI",Arial,sans-serif;background:#f3f4f6;color:#1f2937;min-height:100vh}
 
-    /* Header */
     header{background:#1F4E79;color:#fff;padding:0 24px;height:56px;display:flex;align-items:center;
-           justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2);position:sticky;top:0;z-index:100}
+           justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2);position:sticky;top:0;z-index:200}
     .hd-left{display:flex;align-items:center;gap:12px}
-    .hd-logo{font-size:18px;font-weight:700}
+    .hd-logo{font-size:18px;font-weight:700;cursor:pointer}
     .hd-sub{font-size:13px;color:#BDD7EE;border-left:1px solid #2E75B6;padding-left:12px}
     .user-info{display:flex;align-items:center;gap:10px;font-size:13px;color:#BDD7EE}
     .user-avatar{width:30px;height:30px;background:#2E75B6;border-radius:50%;display:flex;
@@ -20,6 +19,40 @@
     .sign-out{background:transparent;border:1px solid #2E75B6;color:#BDD7EE;padding:4px 10px;
               border-radius:4px;cursor:pointer;font-size:12px;transition:all .15s}
     .sign-out:hover{background:#2E75B6;color:#fff}
+
+    /* Global search bar */
+    .global-search-bar{background:#fff;border-bottom:1px solid #e5e7eb;padding:12px 24px;
+                        display:flex;align-items:center;gap:12px;position:sticky;top:56px;z-index:100}
+    .global-search-wrap{position:relative;flex:1;max-width:600px}
+    .global-search-input{width:100%;padding:10px 16px 10px 40px;border:2px solid #d1d5db;
+                          border-radius:8px;font-size:14px;outline:none;transition:border-color .15s}
+    .global-search-input:focus{border-color:#2E75B6}
+    .global-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);
+                         font-size:16px;color:#9ca3af}
+    .global-search-clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                           background:none;border:none;font-size:18px;color:#9ca3af;cursor:pointer;
+                           display:none}
+    .global-search-clear.visible{display:block}
+    .search-status{font-size:12px;color:#6b7280;white-space:nowrap}
+
+    /* Search results dropdown */
+    .search-results{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;
+                     border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.12);
+                     max-height:480px;overflow-y:auto;z-index:300;display:none}
+    .search-results.visible{display:block}
+    .search-result-item{padding:10px 16px;border-bottom:1px solid #f3f4f6;cursor:pointer;
+                          transition:background .1s}
+    .search-result-item:last-child{border-bottom:none}
+    .search-result-item:hover{background:#f0f7ff}
+    .sr-name{font-size:14px;font-weight:500;color:#1f2937}
+    .sr-path{font-size:12px;color:#6b7280;margin-top:2px;display:flex;align-items:center;gap:4px}
+    .sr-section-badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;
+                       font-weight:600;color:#fff;margin-right:4px}
+    .sr-no-results{padding:24px;text-align:center;color:#6b7280;font-size:14px}
+    .sr-loading{padding:16px;text-align:center;color:#6b7280;font-size:13px}
+    .sr-count{padding:8px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;
+               font-size:12px;color:#6b7280;font-weight:500}
+    .sr-highlight{background:#fef3c7;border-radius:2px;font-weight:600}
 
     /* Login */
     #login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -47,11 +80,11 @@
     .bc-item.current{color:#374151;cursor:default;font-weight:500}
     .bc-item.current:hover{background:none}
     .bc-sep{color:#9ca3af}
-    .search-box{padding:6px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;
-                width:220px;outline:none;transition:border-color .15s}
-    .search-box:focus{border-color:#2E75B6}
+    .folder-search{padding:6px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;
+                   width:200px;outline:none;transition:border-color .15s}
+    .folder-search:focus{border-color:#2E75B6}
 
-    /* Root cards (top-level view) */
+    /* Root cards */
     .root-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;
                padding:24px;max-width:1200px;margin:0 auto}
     .root-card{background:#fff;border-radius:10px;padding:24px 20px;cursor:pointer;
@@ -95,11 +128,17 @@
     .error-state{color:#dc2626}
     .stats-bar{display:flex;gap:20px;padding:12px 0 0;font-size:12px;color:#9ca3af}
 
+    /* Index status banner */
+    .index-banner{background:#FFF8E1;border-bottom:1px solid #FFE082;padding:8px 24px;
+                  font-size:12px;color:#7F6000;display:none;align-items:center;gap:8px}
+    .index-banner.visible{display:flex}
+
     @media(max-width:600px){
       .fl-header,.fl-item{grid-template-columns:1fr 100px}
       .file-date{display:none}
       .hd-sub{display:none}
-      .search-box{width:150px}
+      .folder-search{width:130px}
+      .global-search-input{font-size:13px}
     }
   </style>
 </head>
@@ -107,7 +146,7 @@
 
 <header>
   <div class="hd-left">
-    <div class="hd-logo">🎼 USUO</div>
+    <div class="hd-logo" onclick="goRoot()">🎼 USUO</div>
     <div class="hd-sub">Archive Portal</div>
   </div>
   <div class="user-info" id="user-info" style="display:none">
@@ -122,7 +161,7 @@
   <div class="login-card">
     <div class="login-icon">🗂️</div>
     <h2>USUO Archive Portal</h2>
-    <p>Secure read-only access to USUO production and shared archives.<br/>
+    <p>Secure read-only access to USUO historical archives.<br/>
        Sign in with your USUO Microsoft 365 account.</p>
     <a class="ms-btn" href="/.auth/login/aad?post_login_redirect_uri=/">
       <span>⊞</span> Sign in with Microsoft
@@ -132,11 +171,34 @@
 
 <!-- App -->
 <div id="app-screen">
-  <div class="toolbar">
-    <div class="breadcrumb" id="breadcrumb"></div>
-    <input class="search-box" type="text" id="search-input"
-           placeholder="🔍 Search…" oninput="filterItems(this.value)"/>
+
+  <!-- Global search bar (always visible) -->
+  <div class="global-search-bar">
+    <div class="global-search-wrap">
+      <span class="global-search-icon">🔍</span>
+      <input class="global-search-input" id="global-search"
+             type="text" placeholder="Search all archives by file name…"
+             oninput="onGlobalSearch(this.value)"
+             autocomplete="off" />
+      <button class="global-search-clear" id="search-clear"
+              onclick="clearGlobalSearch()">×</button>
+      <div class="search-results" id="search-results"></div>
+    </div>
+    <div class="search-status" id="search-status">Loading search index…</div>
   </div>
+
+  <!-- Index loading banner -->
+  <div class="index-banner" id="index-banner">
+    ⏳ Search index is being built — global search will be available shortly. Folder browsing works normally.
+  </div>
+
+  <!-- Folder toolbar (shown when inside a folder) -->
+  <div class="toolbar" id="folder-toolbar" style="display:none">
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <input class="folder-search" type="text" id="folder-search-input"
+           placeholder="Filter this folder…" oninput="filterItems(this.value)"/>
+  </div>
+
   <div id="main-content"></div>
 </div>
 
@@ -145,36 +207,24 @@
 const STORAGE_ACCOUNT = "usuoarchive";
 const CONTAINER       = "usuo-archive";
 
-// Top-level folders — matches what's in the container
 const ROOT_FOLDERS = [
-  {
-    key:   "PS-Archive",
-    icon:  "🎭",
-    name:  "PS Archive",
-    desc:  "PS Old Q: drive Department Archive files By Session"
-  },
-  {
-    key:   "AH-Archive",
-    icon:  "🎵",
-    name:  "AH Archive",
-    desc:  "AH Old T: drive Department Archive files By Session"
-  },
-  {
-    key:   "ProdShared",
-    icon:  "📂",
-    name:  "ProdShared Archive",
-    desc:  "Old P: drive pre 2012 files"
-  },
-  {
-    key:   "Share",
-    icon:  "📂",
-    name:  "Share Archive",
-    desc:  "Old S: drive pre 2012 files"
-  },
+  { key:"ProdShared", icon:"🎭", name:"ProdShared Archive", desc:"Old P: drive pre 2012 files" },
+  { key:"Share",      icon:"📂", name:"Share Archive",      desc:"Old S: drive pre 2012 files" },
+  { key:"PS-Archive", icon:"🏛️", name:"PS Archive",         desc:"PS Old Q: drive Department Archive files By Session" },
+  { key:"AH-Archive", icon:"🎵", name:"AH Archive",         desc:"AH Old T: drive Department Archive files By Session" },
 ];
 
-let currentPath = null;   // null = root view, string = inside a folder
+const SECTION_COLORS = {
+  "ProdShared": "#1F4E79",
+  "Share":      "#2E7D32",
+  "PS-Archive": "#6A1B9A",
+  "AH-Archive": "#B71C1C",
+};
+
+let currentPath = null;
 let allItems    = [];
+let searchIndex = null;
+let searchReady = false;
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 async function checkAuth() {
@@ -186,6 +236,110 @@ async function checkAuth() {
   } catch { return null; }
 }
 function signOut() { window.location.href = "/.auth/logout?post_logout_redirect_uri=/"; }
+
+// ── Search Index ──────────────────────────────────────────────────────────────
+async function loadSearchIndex() {
+  const status = document.getElementById("search-status");
+  try {
+    const res = await fetch("/api/getindex");
+    if (!res.ok) throw new Error("Index not found");
+    const data = await res.json();
+    if (data && data.files && data.files.length > 0) {
+      searchIndex = data;
+      searchReady = true;
+      const count = data.total.toLocaleString();
+      status.textContent = `Search ready — ${count} files indexed`;
+      document.getElementById("global-search").placeholder =
+        `Search all ${count} archived files by name…`;
+    } else {
+      throw new Error("Empty index");
+    }
+  } catch {
+    status.textContent = "Global search unavailable — browse folders below";
+    document.getElementById("index-banner").classList.add("visible");
+  }
+}
+
+// ── Global Search ─────────────────────────────────────────────────────────────
+let searchTimer = null;
+function onGlobalSearch(query) {
+  const clearBtn = document.getElementById("search-clear");
+  clearBtn.classList.toggle("visible", query.length > 0);
+
+  clearTimeout(searchTimer);
+  if (!query.trim()) { hideSearchResults(); return; }
+  if (query.length < 2) return;
+
+  searchTimer = setTimeout(() => runSearch(query.trim()), 150);
+}
+
+function runSearch(query) {
+  const resultsEl = document.getElementById("search-results");
+  if (!searchReady || !searchIndex) {
+    resultsEl.innerHTML = `<div class="sr-no-results">Search index not loaded yet. Try browsing folders below.</div>`;
+    resultsEl.classList.add("visible");
+    return;
+  }
+
+  const q = query.toLowerCase();
+  const matches = searchIndex.files.filter(f =>
+    f.n.toLowerCase().includes(q)
+  ).slice(0, 50); // cap at 50 results
+
+  if (matches.length === 0) {
+    resultsEl.innerHTML = `<div class="sr-no-results">No files found matching "<strong>${escHtml(query)}</strong>"</div>`;
+  } else {
+    const total = searchIndex.files.filter(f => f.n.toLowerCase().includes(q)).length;
+    const showing = Math.min(total, 50);
+    let html = `<div class="sr-count">Showing ${showing.toLocaleString()} of ${total.toLocaleString()} results for "<strong>${escHtml(query)}</strong>"</div>`;
+
+    html += matches.map(f => {
+      const highlighted = f.n.replace(
+        new RegExp(`(${escRegex(query)})`, 'gi'),
+        `<span class="sr-highlight">$1</span>`
+      );
+      const section = ROOT_FOLDERS.find(r => f.s === r.key);
+      const sectionName = section ? section.name : f.s;
+      const color = SECTION_COLORS[f.s] || "#1F4E79";
+      const folderDisplay = f.f.split("/").slice(1).join(" › ") || sectionName;
+
+      return `<div class="search-result-item" onclick="navigateToFile('${escAttr(f.p)}', '${escAttr(f.f)}')">
+        <div class="sr-name">${highlighted}</div>
+        <div class="sr-path">
+          <span class="sr-section-badge" style="background:${color}">${sectionName}</span>
+          📁 ${escHtml(folderDisplay)}
+        </div>
+      </div>`;
+    }).join("");
+
+    if (total > 50) {
+      html += `<div class="sr-count">Refine your search to see more results.</div>`;
+    }
+    resultsEl.innerHTML = html;
+  }
+  resultsEl.classList.add("visible");
+}
+
+function hideSearchResults() {
+  document.getElementById("search-results").classList.remove("visible");
+}
+
+function clearGlobalSearch() {
+  document.getElementById("global-search").value = "";
+  document.getElementById("search-clear").classList.remove("visible");
+  hideSearchResults();
+}
+
+async function navigateToFile(filePath, folderPath) {
+  clearGlobalSearch();
+  // Navigate to the folder containing the file
+  await navigateTo(folderPath);
+}
+
+// Close search results when clicking outside
+document.addEventListener("click", e => {
+  if (!e.target.closest(".global-search-wrap")) hideSearchResults();
+});
 
 // ── Blob listing ──────────────────────────────────────────────────────────────
 async function listBlobs(prefix) {
@@ -224,6 +378,11 @@ function fmtDate(d) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"});
 }
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function escAttr(s) { return s.replace(/'/g,"\\'"); }
+function escRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
 
 // ── Breadcrumb ────────────────────────────────────────────────────────────────
 function renderBreadcrumb(path) {
@@ -245,8 +404,8 @@ function renderBreadcrumb(path) {
 // ── Root view ─────────────────────────────────────────────────────────────────
 function renderRoot() {
   currentPath = null;
-  document.getElementById("search-input").value = "";
-  renderBreadcrumb("");
+  document.getElementById("folder-search-input").value = "";
+  document.getElementById("folder-toolbar").style.display = "none";
 
   const html = `<div class="root-grid">
     ${ROOT_FOLDERS.map(f => `
@@ -263,7 +422,8 @@ function goRoot() { renderRoot(); }
 // ── Folder view ───────────────────────────────────────────────────────────────
 async function navigateTo(path) {
   currentPath = path;
-  document.getElementById("search-input").value = "";
+  document.getElementById("folder-search-input").value = "";
+  document.getElementById("folder-toolbar").style.display = "flex";
   renderBreadcrumb(path);
 
   document.getElementById("main-content").innerHTML = `
@@ -344,7 +504,6 @@ function renderItems(items) {
 }
 
 function filterItems(q) {
-  if (currentPath === null) return; // don't filter root cards
   if (!q) { renderItems(allItems); return; }
   renderItems(allItems.filter(i=>i.name.toLowerCase().includes(q.toLowerCase())));
 }
@@ -363,10 +522,17 @@ async function init() {
   document.getElementById("user-info").style.display = "flex";
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("app-screen").style.display   = "block";
+
+  // Load search index in background — don't block UI
+  loadSearchIndex();
   renderRoot();
 }
 
 init();
 </script>
+
+<div style="text-align:center;padding:16px;font-size:11px;color:#9ca3af">
+  <a href="/it" style="color:#9ca3af;text-decoration:none;opacity:.6" title="IT Admin">&#9881; IT Admin</a>
+</div>
 </body>
 </html>

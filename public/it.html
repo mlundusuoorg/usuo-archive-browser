@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>USUO Archive — IT Admin</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:"Segoe UI",Arial,sans-serif;background:#f3f4f6;color:#1f2937;min-height:100vh}
+
+    header{background:#1F4E79;color:#fff;padding:0 24px;height:56px;display:flex;align-items:center;
+           justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2);position:sticky;top:0;z-index:100}
+    .hd-left{display:flex;align-items:center;gap:12px}
+    .hd-logo{font-size:18px;font-weight:700;cursor:pointer}
+    .hd-sub{font-size:13px;color:#BDD7EE;border-left:1px solid #2E75B6;padding-left:12px}
+    .hd-badge{background:#dc2626;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;
+              border-radius:10px;letter-spacing:.5px}
+    .user-info{display:flex;align-items:center;gap:10px;font-size:13px;color:#BDD7EE}
+    .user-avatar{width:30px;height:30px;background:#2E75B6;border-radius:50%;display:flex;
+                 align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff}
+    .sign-out{background:transparent;border:1px solid #2E75B6;color:#BDD7EE;padding:4px 10px;
+              border-radius:4px;cursor:pointer;font-size:12px}
+    .sign-out:hover{background:#2E75B6;color:#fff}
+    .back-btn{background:#2E75B6;color:#fff;border:none;padding:6px 14px;border-radius:6px;
+              cursor:pointer;font-size:13px;font-weight:600}
+    .back-btn:hover{background:#1F4E79}
+
+    .container{max-width:1100px;margin:0 auto;padding:32px 24px}
+
+    /* Page title */
+    .page-title{margin-bottom:32px}
+    .page-title h1{font-size:28px;font-weight:700;color:#1F4E79;margin-bottom:6px}
+    .page-title p{font-size:14px;color:#6b7280}
+
+    /* Section */
+    .section{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);
+             margin-bottom:24px;overflow:hidden}
+    .section-header{background:#1F4E79;padding:16px 24px;display:flex;align-items:center;gap:12px}
+    .section-header h2{font-size:17px;font-weight:700;color:#fff}
+    .section-icon{font-size:22px}
+    .section-body{padding:24px}
+
+    /* Cards grid */
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;
+           margin-bottom:0}
+    .card{border:1px solid #e5e7eb;border-radius:8px;padding:20px;transition:box-shadow .15s}
+    .card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08)}
+    .card-icon{font-size:32px;margin-bottom:10px}
+    .card-title{font-size:14px;font-weight:700;color:#1F4E79;margin-bottom:6px}
+    .card-desc{font-size:13px;color:#6b7280;line-height:1.5;margin-bottom:14px}
+    .card-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;
+              border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;
+              border:none;text-decoration:none;transition:all .15s}
+    .btn-primary{background:#1F4E79;color:#fff}
+    .btn-primary:hover{background:#163d61}
+    .btn-secondary{background:#DEEAF1;color:#1F4E79}
+    .btn-secondary:hover{background:#BDD7EE}
+    .btn-green{background:#E2EFDA;color:#375623}
+    .btn-green:hover{background:#c6e0b4}
+
+    /* Code block */
+    .code-block{background:#1e1e1e;border-radius:8px;padding:16px 20px;margin:12px 0;
+                overflow-x:auto;position:relative}
+    .code-block pre{color:#d4d4d4;font-family:"Courier New",monospace;font-size:13px;
+                    line-height:1.6;margin:0;white-space:pre-wrap;word-break:break-all}
+    .code-block .comment{color:#6a9955}
+    .code-block .keyword{color:#569cd6}
+    .copy-btn{position:absolute;top:10px;right:10px;background:#3c3c3c;color:#d4d4d4;
+              border:none;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;
+              transition:background .15s}
+    .copy-btn:hover{background:#555}
+
+    /* Step list */
+    .steps{list-style:none;counter-reset:steps}
+    .steps li{counter-increment:steps;display:flex;gap:14px;padding:12px 0;
+              border-bottom:1px solid #f3f4f6}
+    .steps li:last-child{border-bottom:none}
+    .steps li::before{content:counter(steps);min-width:28px;height:28px;background:#1F4E79;
+                      color:#fff;border-radius:50%;display:flex;align-items:center;
+                      justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;
+                      margin-top:1px}
+    .steps li .step-text{font-size:14px;color:#374151;line-height:1.5}
+    .steps li .step-text code{background:#f3f4f6;padding:1px 6px;border-radius:3px;
+                               font-family:"Courier New",monospace;font-size:12px;color:#1F4E79}
+
+    /* Table */
+    .ref-table{width:100%;border-collapse:collapse;font-size:13px}
+    .ref-table th{background:#f9fafb;padding:10px 14px;text-align:left;font-weight:600;
+                  color:#374151;border-bottom:2px solid #e5e7eb}
+    .ref-table td{padding:10px 14px;border-bottom:1px solid #f3f4f6;color:#374151;
+                  vertical-align:top}
+    .ref-table tr:last-child td{border-bottom:none}
+    .ref-table code{background:#f3f4f6;padding:1px 6px;border-radius:3px;
+                    font-family:"Courier New",monospace;font-size:12px;color:#1F4E79}
+
+    /* Alert */
+    .alert{padding:12px 16px;border-radius:8px;font-size:13px;margin:12px 0;
+           display:flex;gap:10px;align-items:flex-start}
+    .alert-warn{background:#FFF8E1;border-left:4px solid #FFC107;color:#7F6000}
+    .alert-info{background:#E3F2FD;border-left:4px solid #2196F3;color:#0D47A1}
+    .alert-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+
+    /* Download row */
+    .download-row{display:flex;align-items:center;justify-content:space-between;
+                  padding:14px 0;border-bottom:1px solid #f3f4f6;gap:16px}
+    .download-row:last-child{border-bottom:none}
+    .download-info{flex:1}
+    .download-name{font-size:14px;font-weight:600;color:#1F4E79;margin-bottom:3px}
+    .download-desc{font-size:12px;color:#6b7280}
+
+    /* Token expiry badge */
+    .expiry-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+                  background:#FFF3E0;color:#E65100;border-radius:20px;font-size:12px;
+                  font-weight:600;border:1px solid #FFCC80}
+
+    #login-screen{display:flex;align-items:center;justify-content:center;
+                  min-height:calc(100vh - 56px);padding:40px}
+    .login-card{background:#fff;border-radius:12px;padding:48px 40px;max-width:400px;
+                text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+    .login-card h2{color:#1F4E79;margin-bottom:8px}
+    .login-card p{color:#6b7280;font-size:14px;margin-bottom:24px}
+    .ms-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+            padding:12px;background:#0078d4;color:#fff;border:none;border-radius:6px;
+            font-size:15px;font-weight:600;cursor:pointer;text-decoration:none}
+    .ms-btn:hover{background:#006cbe}
+
+    #app-screen{display:none}
+
+    .toast{position:fixed;bottom:24px;right:24px;background:#1F4E79;color:#fff;
+           padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;
+           box-shadow:0 4px 16px rgba(0,0,0,.2);opacity:0;transition:opacity .3s;z-index:999}
+    .toast.show{opacity:1}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hd-left">
+    <div class="hd-logo" onclick="window.location='/'">🎼 USUO</div>
+    <div class="hd-sub">Archive Portal</div>
+    <span class="hd-badge">IT ADMIN</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button class="back-btn" onclick="window.location='/'">← Back to Archive</button>
+    <div class="user-info" id="user-info" style="display:none">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-name"></span>
+      <button class="sign-out" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<div id="login-screen">
+  <div class="login-card">
+    <h2>🔧 IT Admin Area</h2>
+    <p>Sign in with your USUO Microsoft 365 account to access IT documentation and tools.</p>
+    <a class="ms-btn" href="/.auth/login/aad?post_login_redirect_uri=/it">⊞ Sign in with Microsoft</a>
+  </div>
+</div>
+
+<div id="app-screen">
+<div class="container">
+
+  <div class="page-title">
+    <h1>🔧 IT Admin — USUO Archive Portal</h1>
+    <p>Documentation, tools, and reference information for managing the archive portal.</p>
+  </div>
+
+  <!-- ── SECTION 1: DOWNLOADS ── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-icon">📥</span>
+      <h2>Downloads — Scripts &amp; Documentation</h2>
+    </div>
+    <div class="section-body">
+      <div class="download-row">
+        <div class="download-info">
+          <div class="download-name">📄 USUO Archive Portal — Staff User Guide</div>
+          <div class="download-desc">End-user documentation covering login, browsing, downloading, and troubleshooting. Distribute to all staff.</div>
+        </div>
+        <a class="card-btn btn-primary" href="/api/download-it-file?file=USUO_Archive_Portal_User_Guide.docx" download>
+          ⬇ Download .docx
+        </a>
+      </div>
+      <div class="download-row">
+        <div class="download-info">
+          <div class="download-name">⚙️ Build-ArchiveSearchIndex.ps1</div>
+          <div class="download-desc">PowerShell script to crawl all archive sections and rebuild the global search index. Run after adding new files to the archive.</div>
+        </div>
+        <a class="card-btn btn-secondary" href="/api/download-it-file?file=Build-ArchiveSearchIndex.ps1" download>
+          ⬇ Download .ps1
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 2: SEARCH INDEX ── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-icon">🔍</span>
+      <h2>Rebuilding the Global Search Index</h2>
+    </div>
+    <div class="section-body">
+      <p style="font-size:14px;color:#374151;margin-bottom:16px">
+        The search index is a JSON file that lists every file in all four archive sections.
+        It must be rebuilt manually after new files are added to any archive section.
+        Run time is approximately 5–15 minutes depending on total file count.
+      </p>
+
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠️</span>
+        <span>The SAS token in the script expires <strong>August 31, 2026</strong>. After that date, generate a new SAS token and update the <code>$SAS</code> variable in the script before running.</span>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:600;color:#1F4E79;margin:20px 0 12px">Steps to rebuild the index</h3>
+      <ol class="steps">
+        <li><span class="step-text">Download <code>Build-ArchiveSearchIndex.ps1</code> from the Downloads section above</span></li>
+        <li><span class="step-text">Copy it to any machine with AzCopy installed at <code>C:\Tools\AzCopy\azcopy.exe</code> and internet access</span></li>
+        <li><span class="step-text">Open <strong>PowerShell as Administrator</strong></span></li>
+        <li><span class="step-text">Run the script:</span></li>
+      </ol>
+
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <pre><span class="comment"># Navigate to the script location and run it</span>
+cd C:\Tools
+.\Build-ArchiveSearchIndex.ps1</pre>
+      </div>
+
+      <ol class="steps" start="5">
+        <li><span class="step-text">The script will scan all four archive sections and display progress per section</span></li>
+        <li><span class="step-text">When complete it uploads <code>search-index.json</code> to Azure automatically</span></li>
+        <li><span class="step-text">Users will see updated search results within 5 minutes (API cache TTL)</span></li>
+      </ol>
+
+      <div class="alert alert-info">
+        <span class="alert-icon">ℹ️</span>
+        <span>The portal still works for folder browsing while the index is rebuilding. Only global search is temporarily unavailable.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 3: UPLOADING NEW FILES ── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-icon">📤</span>
+      <h2>Uploading New Files to the Archive</h2>
+    </div>
+    <div class="section-body">
+
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠️</span>
+        <span>Always use <code>\*</code> at the end of the source path to copy <em>contents</em> rather than the folder itself. This prevents nesting issues (e.g. <code>ProdShared\ProdShared\</code>).</span>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:600;color:#1F4E79;margin:20px 0 12px">AzCopy upload — single folder</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <pre><span class="comment"># Template — replace SOURCE_PATH and DEST_FOLDER</span>
+<span class="keyword">$SAS</span> = <span style="color:#ce9178">"?sv=2026-02-06&ss=bfqt&srt=co&sp=rwdlacupiytfx&se=2026-08-31T23:51:41Z&st=2026-08-19T15:59:10Z&spr=https&sig=lk7OQyxeGTSjbevHEL5UdyDEiJlgoJuXBs6kgibZJxg%3D"</span>
+
+C:\Tools\AzCopy\azcopy.exe copy <span style="color:#ce9178">"D:\SOURCE_PATH\*"</span> `
+  <span style="color:#ce9178">"https://usuoarchive.blob.core.windows.net/usuo-archive/DEST_FOLDER$SAS"</span> `
+  --recursive --check-length --log-level INFO</pre>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:600;color:#1F4E79;margin:20px 0 12px">AzCopy upload — department Archive_Years folders (loop)</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <pre><span class="comment"># Loops through all department folders, uploads Archive_Years as Archive</span>
+<span class="keyword">$SAS</span>        = <span style="color:#ce9178">"?sv=2026-02-06&..."</span>  <span class="comment"># paste full SAS token</span>
+<span class="keyword">$AzCopy</span>     = <span style="color:#ce9178">"C:\Tools\AzCopy\azcopy.exe"</span>
+<span class="keyword">$SourceRoot</span> = <span style="color:#ce9178">"D:\Data\PSDepShare"</span>   <span class="comment"># or AHDepShare</span>
+<span class="keyword">$DestRoot</span>   = <span style="color:#ce9178">"https://usuoarchive.blob.core.windows.net/usuo-archive/PS-Archive"</span>
+
+Get-ChildItem -Path <span class="keyword">$SourceRoot</span> -Directory | ForEach-Object {
+    <span class="keyword">$arch</span> = Join-Path <span class="keyword">$_</span>.FullName <span style="color:#ce9178">"Archive_Years"</span>
+    <span class="keyword">if</span> (Test-Path <span class="keyword">$arch</span>) {
+        & <span class="keyword">$AzCopy</span> copy <span style="color:#ce9178">"$arch\*"</span> <span style="color:#ce9178">"$DestRoot/$($_.Name)/Archive$SAS"</span> --recursive
+    }
+}</pre>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:600;color:#1F4E79;margin:20px 0 12px">After uploading — always rebuild the search index</h3>
+      <ol class="steps">
+        <li><span class="step-text">Verify the upload in Azure Portal → Storage browser → usuo-archive → confirm folder structure looks correct with no nesting</span></li>
+        <li><span class="step-text">Run <code>Build-ArchiveSearchIndex.ps1</code> to include new files in search results</span></li>
+        <li><span class="step-text">Test the portal at <a href="https://archive.myusuo.org" target="_blank" style="color:#2E75B6">archive.myusuo.org</a> — search for a file you just uploaded to confirm it appears</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ── SECTION 4: REFERENCE ── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-icon">📋</span>
+      <h2>Quick Reference</h2>
+    </div>
+    <div class="section-body">
+      <table class="ref-table">
+        <tr><th>Item</th><th>Value</th></tr>
+        <tr><td>Portal URL</td><td><a href="https://archive.myusuo.org" target="_blank" style="color:#2E75B6">https://archive.myusuo.org</a></td></tr>
+        <tr><td>Azure Static Web App</td><td><code>usuo-archive-browser</code> — Resource group: USUO-Storage-RG</td></tr>
+        <tr><td>Azure Static Web App URL</td><td><code>orange-pond-092789a1e.7.azurestaticapps.net</code></td></tr>
+        <tr><td>Storage account</td><td><code>usuoarchive</code> — West US 2 — LRS — Cool tier</td></tr>
+        <tr><td>Blob container</td><td><code>usuo-archive</code></td></tr>
+        <tr><td>GitHub repo</td><td><a href="https://github.com/mlundusuoorg/usuo-archive-browser" target="_blank" style="color:#2E75B6">github.com/mlundusuoorg/usuo-archive-browser</a></td></tr>
+        <tr><td>Entra ID app</td><td>USUO Archive Browser — App ID: 155784c5-d9ae-4add-83e0-272977943b8b</td></tr>
+        <tr><td>Access group</td><td><code>USUO-Archive-Readers</code> — Entra ID Security Group</td></tr>
+        <tr><td>SAS token expiry</td><td><span class="expiry-badge">⏰ August 31, 2026</span> — regenerate before this date</td></tr>
+        <tr><td>AzCopy location</td><td><code>C:\Tools\AzCopy\azcopy.exe</code> on PSFS01v23, PSFS02V, AHFS02V</td></tr>
+        <tr><td>Archive sections</td><td>ProdShared, Share, PS-Archive, AH-Archive</td></tr>
+        <tr><td>Search index location</td><td><code>usuo-archive/search-index.json</code> in Azure Blob</td></tr>
+      </table>
+
+      <h3 style="font-size:15px;font-weight:600;color:#1F4E79;margin:24px 0 12px">Adding a user to the archive</h3>
+      <ol class="steps">
+        <li><span class="step-text">Go to <a href="https://entra.microsoft.com" target="_blank" style="color:#2E75B6">entra.microsoft.com</a> → Groups → <code>USUO-Archive-Readers</code></span></li>
+        <li><span class="step-text">Click Members → + Add members → search for the user → Select</span></li>
+        <li><span class="step-text">Access takes effect within 5 minutes — no portal restart needed</span></li>
+      </ol>
+
+      <h3 style="font-size:15px;font-weight:600;color:#1F4E79;margin:24px 0 12px">Renewing the SAS token</h3>
+      <ol class="steps">
+        <li><span class="step-text">Azure Portal → Storage accounts → usuoarchive → Shared access signature</span></li>
+        <li><span class="step-text">Set permissions: Blob only, Container + Object, Read/Write/List/Add/Create, new expiry date</span></li>
+        <li><span class="step-text">Generate SAS → copy the SAS token</span></li>
+        <li><span class="step-text">Azure Portal → Static Web Apps → usuo-archive-browser → Environment variables → update <code>AZURE_STORAGE_SAS</code></span></li>
+        <li><span class="step-text">Update <code>$SAS</code> in <code>Build-ArchiveSearchIndex.ps1</code> and any upload scripts</span></li>
+      </ol>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div class="toast" id="toast">Copied to clipboard!</div>
+
+<script>
+async function checkAuth() {
+  try {
+    const res = await fetch("/.auth/me");
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.clientPrincipal || null;
+  } catch { return null; }
+}
+function signOut() { window.location.href = "/.auth/logout?post_logout_redirect_uri=/"; }
+
+function copyCode(btn) {
+  const pre = btn.parentElement.querySelector("pre");
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    const toast = document.getElementById("toast");
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 2000);
+  });
+}
+
+async function init() {
+  const principal = await checkAuth();
+  if (!principal) {
+    document.getElementById("login-screen").style.display = "flex";
+    return;
+  }
+  const name = principal.userDetails || principal.userId || "IT";
+  const initials = name.split(" ").map(p=>p[0]).join("").toUpperCase().slice(0,2);
+  document.getElementById("user-name").textContent = name;
+  document.getElementById("user-avatar").textContent = initials;
+  document.getElementById("user-info").style.display = "flex";
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app-screen").style.display = "block";
+}
+init();
+</script>
+</body>
+</html>

@@ -17,6 +17,10 @@
       "allowedRoles": ["authenticated"]
     },
     {
+      "route": "/it",
+      "allowedRoles": ["authenticated"]
+    },
+    {
       "route": "/*",
       "allowedRoles": ["authenticated"]
     }
@@ -26,6 +30,10 @@
       "redirect": "/.auth/login/aad",
       "statusCode": 302
     }
+  },
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/it", "/it.html", "/api/*", "*.{css,scss,js,png,gif,ico,jpg,svg}"]
   },
   "globalHeaders": {
     "X-Content-Type-Options": "nosniff",
