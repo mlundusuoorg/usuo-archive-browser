@@ -221,7 +221,15 @@ const SECTION_COLORS = {
   "AH-Archive": "#B71C1C",
 };
 
-let currentPath = null;
+let currentPath    = null;
+let srResultCache  = [];  // stores folder paths for search result clicks
+
+function goToSearchResult(idx) {
+  const folder = srResultCache[idx];
+  if (!folder) return;
+  clearGlobalSearch();
+  navigateTo(folder);
+}
 let allItems    = [];
 let searchIndex = null;
 let searchReady = false;
@@ -292,6 +300,7 @@ function onGlobalSearch(query) {
 }
 
 async function runSearch(query) {
+  srResultCache = [];
   const resultsEl = document.getElementById("search-results");
   if (!searchReady) {
     resultsEl.innerHTML = `<div class="sr-no-results">Search index not loaded yet. Try browsing folders below.</div>`;
@@ -325,9 +334,9 @@ async function runSearch(query) {
       const parentRel   = f.p.includes("/") ? f.p.substring(0, f.p.lastIndexOf("/")) : "";
       const folderFull  = parentRel ? f.s + "/" + parentRel : f.s;
       const folderDisp  = parentRel ? parentRel.split("/").join(" › ") : sectionName;
-      const ff = folderFull.replace(/'/g, "\\'");
-      const fp = fullPath.replace(/'/g, "\\'");
-      return `<div class="search-result-item" onclick="navigateToFile('${fp}','${ff}')">
+      const idx = srResultCache.length;
+      srResultCache.push(folderFull);
+      return `<div class="search-result-item" onclick="goToSearchResult(${idx})">
         <div class="sr-name">${highlighted}</div>
         <div class="sr-path">
           <span class="sr-section-badge" style="background:${color}">${sectionName}</span>
