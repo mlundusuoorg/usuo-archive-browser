@@ -38,8 +38,8 @@
     /* Search results dropdown */
     .search-results{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;
                      border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.12);
-                     max-height:480px;overflow-y:auto;z-index:300;display:none !important}
-    .search-results.visible{display:block !important}
+                     max-height:480px;overflow-y:auto;z-index:300;display:none}
+    .search-results.visible{display:block}
     .search-result-item{padding:10px 16px;border-bottom:1px solid #f3f4f6;cursor:pointer;
                           transition:background .1s}
     .search-result-item:last-child{border-bottom:none}
@@ -224,12 +224,20 @@ const SECTION_COLORS = {
 let currentPath    = null;
 let srResultCache  = [];  // stores folder paths for search result clicks
 
+
+function showSearchResults() {
+  document.getElementById("search-results").style.display = "block";
+}
+
+function hideSearchResults() {
+  document.getElementById("search-results").style.display = "none";
+}
+
 function goToSearchResult(idx) {
   const folder = srResultCache[idx];
   if (!folder) return;
   // Hide dropdown immediately
   const el = document.getElementById("search-results");
-  el.classList.remove("visible");
   el.style.display = "none";
   // Clear search input
   document.getElementById("global-search").value = "";
@@ -303,7 +311,7 @@ function onGlobalSearch(query) {
   if (!query.trim()) { hideSearchResults(); return; }
   if (query.length < 2) return;
 
-  searchTimer = setTimeout(() => runSearch(query.trim()), 300);
+  searchTimer = setTimeout(() => { runSearch(query.trim()).catch(e => console.error("Search error:", e)); }, 300);
 }
 
 async function runSearch(query) {
@@ -362,7 +370,6 @@ function clearGlobalSearch() {
   document.getElementById("global-search").value = "";
   document.getElementById("search-clear").classList.remove("visible");
   const el = document.getElementById("search-results");
-  el.classList.remove("visible");
   el.style.display = "none";
 }
 
@@ -377,7 +384,6 @@ document.addEventListener("click", e => {
   const wrap = document.getElementById("search-results");
   const input = document.getElementById("global-search");
   if (!e.target.closest(".global-search-wrap") && !e.target.closest(".search-results")) {
-    wrap.classList.remove("visible");
     wrap.style.display = "none";
   }
 });
