@@ -322,9 +322,18 @@ async function runSearch(query) {
       const sectionName = section ? section.name : f.s;
       const color       = SECTION_COLORS[f.s] || "#1F4E79";
       const fullPath    = f.s + "/" + f.p;
-      const folderFull  = f.s + "/" + (f.p.includes("/") ? f.p.substring(0, f.p.lastIndexOf("/")) : "");
-      const folderDisp  = folderFull.split("/").slice(1).join(" > ") || sectionName;
-      return "<div class=\"search-result-item\" onclick=\"navigateToFile('" + escAttr(fullPath) + "','" + escAttr(folderFull) + "')\"><div class=\"sr-name\">" + highlighted + "</div><div class=\"sr-path\"><span class=\"sr-section-badge\" style=\"background:" + color + "\">" + sectionName + "</span> " + escHtml(folderDisp) + "</div></div>";
+      const parentRel   = f.p.includes("/") ? f.p.substring(0, f.p.lastIndexOf("/")) : "";
+      const folderFull  = parentRel ? f.s + "/" + parentRel : f.s;
+      const folderDisp  = parentRel ? parentRel.split("/").join(" › ") : sectionName;
+      const ff = folderFull.replace(/'/g, "\\'");
+      const fp = fullPath.replace(/'/g, "\\'");
+      return `<div class="search-result-item" onclick="navigateToFile('${fp}','${ff}')">
+        <div class="sr-name">${highlighted}</div>
+        <div class="sr-path">
+          <span class="sr-section-badge" style="background:${color}">${sectionName}</span>
+          &#128193; ${escHtml(folderDisp)}
+        </div>
+      </div>`;
     }).join("");
     if (total > 50) html += `<div class="sr-count">Refine your search to see more results.</div>`;
     resultsEl.innerHTML = html;
