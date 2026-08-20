@@ -38,8 +38,8 @@
     /* Search results dropdown */
     .search-results{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;
                      border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.12);
-                     max-height:480px;overflow-y:auto;z-index:300;display:none}
-    .search-results.visible{display:block}
+                     max-height:480px;overflow-y:auto;z-index:300;display:none !important}
+    .search-results.visible{display:block !important}
     .search-result-item{padding:10px 16px;border-bottom:1px solid #f3f4f6;cursor:pointer;
                           transition:background .1s}
     .search-result-item:last-child{border-bottom:none}
@@ -227,7 +227,14 @@ let srResultCache  = [];  // stores folder paths for search result clicks
 function goToSearchResult(idx) {
   const folder = srResultCache[idx];
   if (!folder) return;
-  clearGlobalSearch();
+  // Hide dropdown immediately
+  const el = document.getElementById("search-results");
+  el.classList.remove("visible");
+  el.style.display = "none";
+  // Clear search input
+  document.getElementById("global-search").value = "";
+  document.getElementById("search-clear").classList.remove("visible");
+  // Navigate to folder
   navigateTo(folder);
 }
 let allItems    = [];
@@ -304,11 +311,11 @@ async function runSearch(query) {
   const resultsEl = document.getElementById("search-results");
   if (!searchReady) {
     resultsEl.innerHTML = `<div class="sr-no-results">Search index not loaded yet. Try browsing folders below.</div>`;
-    resultsEl.classList.add("visible");
+    showSearchResults();
     return;
   }
   resultsEl.innerHTML = `<div class="sr-loading">&#128269; Searching&#8230;</div>`;
-  resultsEl.classList.add("visible");
+  showSearchResults();
   const q = query.toLowerCase();
   let allMatches = [];
   for (const section of ROOT_FOLDERS) {
@@ -323,6 +330,7 @@ async function runSearch(query) {
   const matches = allMatches.slice(0, 50);
   if (matches.length === 0) {
     resultsEl.innerHTML = `<div class="sr-no-results">No files found matching "<strong>${escHtml(query)}</strong>"</div>`;
+    showSearchResults();
   } else {
     let html = `<div class="sr-count">Showing ${matches.length.toLocaleString()} of ${total.toLocaleString()}+ results for "<strong>${escHtml(query)}</strong>"</div>`;
     html += matches.map(f => {
@@ -353,7 +361,9 @@ async function runSearch(query) {
 function clearGlobalSearch() {
   document.getElementById("global-search").value = "";
   document.getElementById("search-clear").classList.remove("visible");
-  hideSearchResults();
+  const el = document.getElementById("search-results");
+  el.classList.remove("visible");
+  el.style.display = "none";
 }
 
 async function navigateToFile(filePath, folderPath) {
@@ -364,7 +374,20 @@ async function navigateToFile(filePath, folderPath) {
 
 // Close search results when clicking outside
 document.addEventListener("click", e => {
-  if (!e.target.closest(".global-search-wrap")) hideSearchResults();
+  const wrap = document.getElementById("search-results");
+  const input = document.getElementById("global-search");
+  if (!e.target.closest(".global-search-wrap") && !e.target.closest(".search-results")) {
+    wrap.classList.remove("visible");
+    wrap.style.display = "none";
+  }
+});
+
+// Also hide on Escape key
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    document.getElementById("search-results").classList.remove("visible");
+    document.getElementById("search-results").style.display = "none";
+  }
 });
 
 // ── Blob listing ──────────────────────────────────────────────────────────────
