@@ -1,10 +1,8 @@
 /**
  * Azure Static Web Apps API function — /api/download
- * Generates a short-lived (1 hour) SAS URL for a specific blob.
- * The account SAS token stays server-side.
- *
- * Query params:
- *   path (string) — full blob path e.g. "ProdShared/Auditions/file.pdf"
+ * Generates a short-lived SAS URL for a specific blob.
+ * Returns the URL with correct Content-Disposition so browsers
+ * download the file directly without zipping.
  */
 
 module.exports = async function (context, req) {
@@ -13,10 +11,7 @@ module.exports = async function (context, req) {
   const sas       = process.env.AZURE_STORAGE_SAS;
 
   if (!account || !container || !sas) {
-    context.res = {
-      status: 500,
-      body: { error: "Storage configuration missing" },
-    };
+    context.res = { status: 500, body: { error: "Storage configuration missing" } };
     return;
   }
 
@@ -26,15 +21,17 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Build a direct blob URL using the account SAS
-  // The SAS already has Read permission so this URL works immediately
   const sasClean    = sas.startsWith("?") ? sas : `?${sas}`;
   const encodedPath = blobPath.split("/").map(encodeURIComponent).join("/");
-  const downloadUrl = `https://${account}.blob.core.windows.net/${container}/${encodedPath}${sasClean}`;
+  const fileName    = blobPath.split("/").pop();
+
+  // Build SAS URL — append content-disposition to force browser download (no zip)
+  const disposition = encodeURIComponent(`attachment; filename="${fileName}"`);
+  const downloadUrl = `https://${account}.blob.core.windows.net/${container}/${encodedPath}${sasClean}&rscd=${disposition}`;
 
   context.res = {
     status: 200,
     headers: { "Content-Type": "application/json" },
-    body: { url: downloadUrl, path: blobPath },
+    body: { url: downloadUrl, path: blobPath, name: fileName },
   };
 };
