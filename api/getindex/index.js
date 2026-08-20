@@ -1,31 +1,31 @@
 /**
  * Azure Static Web Apps API — /api/getindex
  * Serves split search index files (one per archive section).
- * 
- * Query params:
- *   section (string) — section key e.g. "ProdShared", "Share", "PS-Archive", "AH-Archive"
- *                      omit to get the master index (counts only)
  */
 
 const https = require("https");
 
-// Cache each section index for 10 minutes
 const cache = {};
 const CACHE_TTL = 10 * 60 * 1000;
 
 module.exports = async function (context, req) {
   const account   = process.env.AZURE_STORAGE_ACCOUNT;
   const container = process.env.AZURE_STORAGE_CONTAINER;
-  const sas       = process.env.AZURE_STORAGE_SAS;
+  let   sas       = process.env.AZURE_STORAGE_SAS || "";
 
   if (!account || !container || !sas) {
     context.res = { status: 500, body: { error: "Storage config missing" } };
     return;
   }
 
-  const section   = req.query.section || "master";
-  const cacheKey  = section;
-  const fileName  = section === "master"
+  // Decode any URL-encoded characters in the SAS token (e.g. %3D → =)
+  sas = decodeURIComponent(sas);
+  // Strip leading ? if present
+  if (sas.startsWith("?")) sas = sas.slice(1);
+
+  const section  = (req.query.section || "master").trim();
+  const cacheKey = section;
+  const fileName = section === "master"
     ? "search-index-master.json"
     : `search-index-${section}.json`;
 
@@ -39,12 +39,13 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const sasClean = sas.startsWith("?") ? sas.slice(1) : sas;
-  const url      = `https://${account}.blob.core.windows.net/${container}/${fileName}?${sasClean}`;
+  const url = `https://${account}.blob.core.windows.net/${container}/${fileName}?${sas}`;
 
   try {
     const raw  = await httpGet(url);
-    const data = JSON.parse(raw);
+    // Strip BOM if present
+    const clean = raw.replace(/^\uFEFF/, "");
+    const data  = JSON.parse(clean);
     cache[cacheKey] = { data, time: Date.now() };
 
     context.res = {
@@ -55,7 +56,7 @@ module.exports = async function (context, req) {
   } catch (err) {
     context.res = {
       status: 404,
-      body: { error: `Index not found for section: ${section}. Run Build-ArchiveSearchIndex-v2.ps1 to generate.` },
+      body: { error: `Index fetch failed for section '${section}': ${err.message}` },
     };
   }
 };
@@ -66,7 +67,7 @@ function httpGet(url) {
       const chunks = [];
       res.on("data", chunk => chunks.push(chunk));
       res.on("end", () => {
-        if (res.statusCode >= 400) reject(new Error(`HTTP ${res.statusCode}`));
+        if (res.statusCode >= 400) reject(new Error(`HTTP ${res.statusCode} from Azure`));
         else resolve(Buffer.concat(chunks).toString("utf8"));
       });
     }).on("error", reject);
