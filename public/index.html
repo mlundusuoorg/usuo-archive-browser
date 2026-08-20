@@ -237,27 +237,45 @@ async function checkAuth() {
 }
 function signOut() { window.location.href = "/.auth/logout?post_logout_redirect_uri=/"; }
 
-// ── Search Index ──────────────────────────────────────────────────────────────
+// ── Search Index (split by section — loaded on demand) ───────────────────────
+let sectionIndexes  = {};   // loaded section indexes
+let loadingSections = {};   // in-progress loads
+let masterIndex     = null; // metadata only
+
 async function loadSearchIndex() {
   const status = document.getElementById("search-status");
   try {
-    const res = await fetch("/api/getindex");
-    if (!res.ok) throw new Error("Index not found");
-    const data = await res.json();
-    if (data && data.files && data.files.length > 0) {
-      searchIndex = data;
-      searchReady = true;
-      const count = data.total.toLocaleString();
-      status.textContent = `Search ready — ${count} files indexed`;
-      document.getElementById("global-search").placeholder =
-        `Search all ${count} archived files by name…`;
-    } else {
-      throw new Error("Empty index");
-    }
+    // Load master index first — it's tiny (just counts)
+    const res = await fetch("/api/getindex?section=master");
+    if (!res.ok) throw new Error("Master index not found");
+    masterIndex = await res.json();
+    const count = (masterIndex.total || 0).toLocaleString();
+    status.textContent = `Search ready — ${count} files indexed`;
+    document.getElementById("global-search").placeholder =
+      `Search all ${count} archived files by name…`;
+    searchReady = true;
   } catch {
     status.textContent = "Global search unavailable — browse folders below";
     document.getElementById("index-banner").classList.add("visible");
   }
+}
+
+async function ensureSectionLoaded(sectionKey) {
+  if (sectionIndexes[sectionKey]) return true;
+  if (loadingSections[sectionKey]) {
+    // Wait for in-progress load
+    await loadingSections[sectionKey];
+    return !!sectionIndexes[sectionKey];
+  }
+  const promise = fetch(`/api/getindex?section=${encodeURIComponent(sectionKey)}`)
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data && data.files) sectionIndexes[sectionKey] = data.files;
+    })
+    .catch(() => {});
+  loadingSections[sectionKey] = promise;
+  await promise;
+  return !!sectionIndexes[sectionKey];
 }
 
 // ── Global Search ─────────────────────────────────────────────────────────────
@@ -270,58 +288,48 @@ function onGlobalSearch(query) {
   if (!query.trim()) { hideSearchResults(); return; }
   if (query.length < 2) return;
 
-  searchTimer = setTimeout(() => runSearch(query.trim()), 150);
+  searchTimer = setTimeout(() => runSearch(query.trim()), 300);
 }
 
-function runSearch(query) {
+async function runSearch(query) {
   const resultsEl = document.getElementById("search-results");
-  if (!searchReady || !searchIndex) {
+  if (!searchReady) {
     resultsEl.innerHTML = `<div class="sr-no-results">Search index not loaded yet. Try browsing folders below.</div>`;
     resultsEl.classList.add("visible");
     return;
   }
-
+  resultsEl.innerHTML = `<div class="sr-loading">&#128269; Searching&#8230;</div>`;
+  resultsEl.classList.add("visible");
   const q = query.toLowerCase();
-  const matches = searchIndex.files.filter(f =>
-    f.n.toLowerCase().includes(q)
-  ).slice(0, 50); // cap at 50 results
-
+  let allMatches = [];
+  for (const section of ROOT_FOLDERS) {
+    const loaded = await ensureSectionLoaded(section.key);
+    if (!loaded) continue;
+    const files = sectionIndexes[section.key] || [];
+    const hits  = files.filter(f => f.n.toLowerCase().includes(q)).map(f => ({ ...f, s: section.key }));
+    allMatches = allMatches.concat(hits);
+    if (allMatches.length > 200) break;
+  }
+  const total   = allMatches.length;
+  const matches = allMatches.slice(0, 50);
   if (matches.length === 0) {
     resultsEl.innerHTML = `<div class="sr-no-results">No files found matching "<strong>${escHtml(query)}</strong>"</div>`;
   } else {
-    const total = searchIndex.files.filter(f => f.n.toLowerCase().includes(q)).length;
-    const showing = Math.min(total, 50);
-    let html = `<div class="sr-count">Showing ${showing.toLocaleString()} of ${total.toLocaleString()} results for "<strong>${escHtml(query)}</strong>"</div>`;
-
+    let html = `<div class="sr-count">Showing ${matches.length.toLocaleString()} of ${total.toLocaleString()}+ results for "<strong>${escHtml(query)}</strong>"</div>`;
     html += matches.map(f => {
-      const highlighted = f.n.replace(
-        new RegExp(`(${escRegex(query)})`, 'gi'),
-        `<span class="sr-highlight">$1</span>`
-      );
-      const section = ROOT_FOLDERS.find(r => f.s === r.key);
+      const highlighted = f.n.replace(new RegExp("(" + escRegex(query) + ")", "gi"), "<span class=\"sr-highlight\">$1</span>");
+      const section     = ROOT_FOLDERS.find(r => r.key === f.s);
       const sectionName = section ? section.name : f.s;
-      const color = SECTION_COLORS[f.s] || "#1F4E79";
-      const folderDisplay = f.f.split("/").slice(1).join(" › ") || sectionName;
-
-      return `<div class="search-result-item" onclick="navigateToFile('${escAttr(f.p)}', '${escAttr(f.f)}')">
-        <div class="sr-name">${highlighted}</div>
-        <div class="sr-path">
-          <span class="sr-section-badge" style="background:${color}">${sectionName}</span>
-          📁 ${escHtml(folderDisplay)}
-        </div>
-      </div>`;
+      const color       = SECTION_COLORS[f.s] || "#1F4E79";
+      const fullPath    = f.s + "/" + f.p;
+      const folderFull  = f.s + "/" + (f.p.includes("/") ? f.p.substring(0, f.p.lastIndexOf("/")) : "");
+      const folderDisp  = folderFull.split("/").slice(1).join(" > ") || sectionName;
+      return "<div class=\"search-result-item\" onclick=\"navigateToFile('" + escAttr(fullPath) + "','" + escAttr(folderFull) + "')\"><div class=\"sr-name\">" + highlighted + "</div><div class=\"sr-path\"><span class=\"sr-section-badge\" style=\"background:" + color + "\">" + sectionName + "</span> " + escHtml(folderDisp) + "</div></div>";
     }).join("");
-
-    if (total > 50) {
-      html += `<div class="sr-count">Refine your search to see more results.</div>`;
-    }
+    if (total > 50) html += `<div class="sr-count">Refine your search to see more results.</div>`;
     resultsEl.innerHTML = html;
   }
   resultsEl.classList.add("visible");
-}
-
-function hideSearchResults() {
-  document.getElementById("search-results").classList.remove("visible");
 }
 
 function clearGlobalSearch() {

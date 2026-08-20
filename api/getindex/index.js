@@ -1,14 +1,17 @@
 /**
  * Azure Static Web Apps API — /api/getindex
- * Serves the search-index.json file from blob storage.
- * Cached for 5 minutes to reduce Azure transaction costs.
+ * Serves split search index files (one per archive section).
+ * 
+ * Query params:
+ *   section (string) — section key e.g. "ProdShared", "Share", "PS-Archive", "AH-Archive"
+ *                      omit to get the master index (counts only)
  */
 
 const https = require("https");
 
-let cachedIndex = null;
-let cacheTime   = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// Cache each section index for 10 minutes
+const cache = {};
+const CACHE_TTL = 10 * 60 * 1000;
 
 module.exports = async function (context, req) {
   const account   = process.env.AZURE_STORAGE_ACCOUNT;
@@ -20,42 +23,51 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Return cached index if still fresh
-  if (cachedIndex && (Date.now() - cacheTime) < CACHE_TTL) {
+  const section   = req.query.section || "master";
+  const cacheKey  = section;
+  const fileName  = section === "master"
+    ? "search-index-master.json"
+    : `search-index-${section}.json`;
+
+  // Return cached if fresh
+  if (cache[cacheKey] && (Date.now() - cache[cacheKey].time) < CACHE_TTL) {
     context.res = {
       status: 200,
-      headers: { "Content-Type": "application/json", "Cache-Control": "max-age=300" },
-      body: cachedIndex,
+      headers: { "Content-Type": "application/json", "Cache-Control": "max-age=600" },
+      body: cache[cacheKey].data,
     };
     return;
   }
 
-  const sasClean  = sas.startsWith("?") ? sas.slice(1) : sas;
-  const indexUrl  = `https://${account}.blob.core.windows.net/${container}/search-index.json?${sasClean}`;
+  const sasClean = sas.startsWith("?") ? sas.slice(1) : sas;
+  const url      = `https://${account}.blob.core.windows.net/${container}/${fileName}?${sasClean}`;
 
   try {
-    const data = await httpGet(indexUrl);
-    cachedIndex = JSON.parse(data);
-    cacheTime   = Date.now();
+    const raw  = await httpGet(url);
+    const data = JSON.parse(raw);
+    cache[cacheKey] = { data, time: Date.now() };
 
     context.res = {
       status: 200,
-      headers: { "Content-Type": "application/json", "Cache-Control": "max-age=300" },
-      body: cachedIndex,
+      headers: { "Content-Type": "application/json", "Cache-Control": "max-age=600" },
+      body: data,
     };
   } catch (err) {
-    context.res = { status: 404, body: { error: "Search index not found. Run Build-ArchiveSearchIndex.ps1 to generate it." } };
+    context.res = {
+      status: 404,
+      body: { error: `Index not found for section: ${section}. Run Build-ArchiveSearchIndex-v2.ps1 to generate.` },
+    };
   }
 };
 
 function httpGet(url) {
   return new Promise((resolve, reject) => {
     https.get(url, res => {
-      let data = "";
-      res.on("data", chunk => data += chunk);
+      const chunks = [];
+      res.on("data", chunk => chunks.push(chunk));
       res.on("end", () => {
         if (res.statusCode >= 400) reject(new Error(`HTTP ${res.statusCode}`));
-        else resolve(data);
+        else resolve(Buffer.concat(chunks).toString("utf8"));
       });
     }).on("error", reject);
   });
