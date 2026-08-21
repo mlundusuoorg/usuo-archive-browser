@@ -185,7 +185,7 @@
       <div class="download-row">
         <div class="download-info">
           <div class="download-name">⚙️ Build-ArchiveSearchIndex.ps1</div>
-          <div class="download-desc">PowerShell script to crawl all archive sections and rebuild the global search index. Run after adding new files to the archive.</div>
+          <div class="download-desc">PowerShell script to crawl all four archive sections and rebuild the split search index (one index file per section). Run after adding new files to any archive section. Expected run time: 90–120 minutes for 556,000+ files.</div>
         </div>
         <button class="card-btn btn-secondary" onclick="downloadDoc('it-docs/Build-ArchiveSearchIndex.ps1','Build-ArchiveSearchIndex.ps1')">
           ⬇ Download .ps1
@@ -209,28 +209,29 @@
 
       <div class="alert alert-warn">
         <span class="alert-icon">⚠️</span>
-        <span>The SAS token in the script expires <strong>August 31, 2026</strong>. After that date, generate a new SAS token and update the <code>$SAS</code> variable in the script before running.</span>
+        <span>The SAS token in the script expires <strong>August 31, 2026</strong>. After that date, generate a new SAS token and update the <code>$SAS</code> variable in the script. Also update <code>$AzCopy</code> if AzCopy moves to a new location.</span>
       </div>
 
       <h3 style="font-size:15px;font-weight:600;color:#1F4E79;margin:20px 0 12px">Steps to rebuild the index</h3>
       <ol class="steps">
-        <li><span class="step-text">Download <code>Build-ArchiveSearchIndex.ps1</code> from the Downloads section above</span></li>
-        <li><span class="step-text">Copy it to any machine with AzCopy installed at <code>C:\Tools\AzCopy\azcopy.exe</code> and internet access</span></li>
+        <li><span class="step-text">Download <code>Build-ArchiveSearchIndex.ps1</code> from the Downloads section above and save to <code>C:\Temp\</code></span></li>
+        <li><span class="step-text">Make sure AzCopy is accessible — the script uses <code>C:\Users\mlund\Downloads\azcopy.exe</code> by default. Update the <code>$AzCopy</code> variable in the script if yours is in a different location.</span></li>
         <li><span class="step-text">Open <strong>PowerShell as Administrator</strong></span></li>
-        <li><span class="step-text">Run the script:</span></li>
+        <li><span class="step-text">Allow the script to run and execute it:</span></li>
       </ol>
 
       <div class="code-block">
         <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-        <pre><span class="comment"># Navigate to the script location and run it</span>
-cd C:\Tools
-.\Build-ArchiveSearchIndex.ps1</pre>
+        <pre><span class="comment"># Allow script execution for this session, then run</span>
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+C:\Temp\Build-ArchiveSearchIndex.ps1</pre>
       </div>
 
       <ol class="steps" start="5">
-        <li><span class="step-text">The script will scan all four archive sections and display progress per section</span></li>
-        <li><span class="step-text">When complete it uploads <code>search-index.json</code> to Azure automatically</span></li>
-        <li><span class="step-text">Users will see updated search results within 5 minutes (API cache TTL)</span></li>
+        <li><span class="step-text">The script scans all four archive sections and shows progress per section — expect 90–120 minutes for 556,000+ files</span></li>
+        <li><span class="step-text">When complete it uploads <strong>four separate index files</strong> plus a master index to Azure automatically:<br>
+          <code>search-index-ProdShared.json</code>, <code>search-index-Share.json</code>, <code>search-index-PS-Archive.json</code>, <code>search-index-AH-Archive.json</code>, <code>search-index-master.json</code></span></li>
+        <li><span class="step-text">Users will see updated search results within 10 minutes (API cache TTL)</span></li>
       </ol>
 
       <div class="alert alert-info">
@@ -340,7 +341,7 @@ Get-ChildItem -Path <span class="keyword">$SourceRoot</span> -Directory | ForEac
         <tr><td>SAS token expiry</td><td><span class="expiry-badge">⏰ August 31, 2026</span> — regenerate before this date</td></tr>
         <tr><td>AzCopy location</td><td><code>C:\Tools\AzCopy\azcopy.exe</code> on PSFS01v23, PSFS02V, AHFS02V</td></tr>
         <tr><td>Archive sections</td><td>ProdShared, Share, PS-Archive, AH-Archive</td></tr>
-        <tr><td>Search index location</td><td><code>usuo-archive/search-index.json</code> in Azure Blob</td></tr>
+        <tr><td>Search index files</td><td><code>usuo-archive/search-index-master.json</code> + four section files (<code>search-index-ProdShared.json</code>, etc.)</td></tr>
       </table>
 
       <h3 style="font-size:15px;font-weight:600;color:#1F4E79;margin:24px 0 12px">Adding a user to the archive</h3>

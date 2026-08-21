@@ -208,10 +208,11 @@ const STORAGE_ACCOUNT = "usuoarchive";
 const CONTAINER       = "usuo-archive";
 
 const ROOT_FOLDERS = [
-  { key:"PS-Archive", icon:"🎭", name:"PS Archive",         desc:"PS Old Q: drive Department Archive files By Session" },
-  { key:"AH-Archive", icon:"🎵", name:"AH Archive",         desc:"AH Old T: drive Department Archive files By Session" },
-  { key:"ProdShared", icon:"📂", name:"ProdShared Archive", desc:"Old P: drive pre 2012 files" },
-  { key:"Share",      icon:"📂", name:"Share Archive",      desc:"Old S: drive pre 2012 files" },
+  { key:"PS-Archive",     icon:"🎭", name:"PS Archive",         desc:"PS Old Q: drive Department Archive files By Session", readOnly:true },
+  { key:"AH-Archive",     icon:"🎵", name:"AH Archive",         desc:"AH Old T: drive Department Archive files By Session", readOnly:true },
+  { key:"ProdShared",     icon:"📂", name:"ProdShared Archive", desc:"Old P: drive pre 2012 files", readOnly:true },
+  { key:"Share",          icon:"📂", name:"Share Archive",      desc:"Old S: drive pre 2012 files", readOnly:true },
+  { key:"Digital-Assets", icon:"🎨", name:"Digital Assets",     desc:"Read/write shared digital assets — upload, download, and overwrite files", readOnly:false },
 ];
 
 const SECTION_COLORS = {
@@ -219,6 +220,7 @@ const SECTION_COLORS = {
   "Share":      "#2E7D32",
   "PS-Archive": "#6A1B9A",
   "AH-Archive": "#B71C1C",
+  "Digital-Assets": "#2E7D32",
 };
 
 let currentPath    = null;
@@ -466,7 +468,7 @@ function renderRoot() {
     ${ROOT_FOLDERS.map(f => `
       <div class="root-card" onclick="navigateTo('${f.key}')">
         <div class="root-card-icon">${f.icon}</div>
-        <div class="root-card-name">${f.name}</div>
+        <div class="root-card-name">${f.name}${!f.readOnly ? ' <span style="font-size:11px;background:#E8F5E9;color:#2E7D32;padding:2px 7px;border-radius:10px;font-weight:600;vertical-align:middle">READ/WRITE</span>' : ''}</div>
         <div class="root-card-desc">${f.desc}</div>
       </div>`).join("")}
   </div>`;
@@ -508,6 +510,7 @@ function renderItems(items) {
   const folders = items.filter(i=> i.isFolder).sort((a,b)=>a.name.localeCompare(b.name));
   const files   = items.filter(i=>!i.isFolder).sort((a,b)=>a.name.localeCompare(b.name));
   const sorted  = [...folders, ...files];
+  const isDigital = currentPath && currentPath.startsWith("Digital-Assets");
 
   if (!sorted.length) {
     document.getElementById("main-content").innerHTML = `
@@ -517,7 +520,23 @@ function renderItems(items) {
     return;
   }
 
-  let rows = `<div class="fl-header">
+  let rows = "";
+  if (isDigital) {
+    rows += `<div id="upload-zone" style="border:2px dashed #a5d6a7;border-radius:8px;padding:20px 24px;
+                  margin:16px;background:#F1F8E9;cursor:pointer;transition:all .15s;text-align:center"
+                  onclick="document.getElementById('file-input').click()"
+                  ondragover="event.preventDefault();this.style.background='#C8E6C9'"
+                  ondragleave="this.style.background='#F1F8E9'"
+                  ondrop="handleDrop(event)">
+      <input type="file" id="file-input" multiple style="display:none" onchange="handleFileSelect(this.files)"/>
+      <div style="font-size:24px;margin-bottom:6px">📤</div>
+      <div style="font-weight:600;color:#2E7D32;font-size:14px">Click to upload or drag files here</div>
+      <div style="font-size:12px;color:#6b7280;margin-top:4px">Files upload to the current folder — same name overwrites existing file</div>
+    </div>
+    <div id="upload-progress" style="display:none;margin:0 16px 12px;padding:12px 16px;
+         background:#E8F5E9;border-radius:6px;font-size:13px;color:#2E7D32"></div>`;
+  }
+  rows += `<div class="fl-header">
     <div>Name</div><div>Modified</div><div style="text-align:right">Size</div>
   </div>`;
 
@@ -561,6 +580,53 @@ function renderItems(items) {
 function filterItems(q) {
   if (!q) { renderItems(allItems); return; }
   renderItems(allItems.filter(i=>i.name.toLowerCase().includes(q.toLowerCase())));
+}
+
+
+// ── Upload (Digital Assets only) ─────────────────────────────────────────────
+function handleDrop(event) {
+  event.preventDefault();
+  document.getElementById("upload-zone").style.background = "#F1F8E9";
+  const files = event.dataTransfer.files;
+  if (files.length) handleFileSelect(files);
+}
+
+async function handleFileSelect(files) {
+  const progress = document.getElementById("upload-progress");
+  if (!progress) return;
+  progress.style.display = "block";
+
+  let done = 0;
+  const total = files.length;
+  const errors = [];
+
+  for (const file of files) {
+    progress.innerHTML = `Uploading ${done + 1} of ${total}: <strong>${file.name}</strong>…`;
+    const blobPath = currentPath + "/" + file.name;
+    try {
+      const res = await fetch("/api/upload?path=" + encodeURIComponent(blobPath), {
+        method: "POST",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      const data = await res.json();
+      if (!data.success) errors.push(file.name + ": " + (data.error || "unknown error"));
+    } catch (e) {
+      errors.push(file.name + ": " + e.message);
+    }
+    done++;
+  }
+
+  if (errors.length) {
+    progress.style.background = "#FFEBEE";
+    progress.style.color = "#c62828";
+    progress.innerHTML = `&#9888; ${errors.length} file(s) failed:<br>${errors.join("<br>")}`;
+  } else {
+    progress.style.background = "#E8F5E9";
+    progress.style.color = "#2E7D32";
+    progress.innerHTML = `&#10003; ${done} file${done!==1?"s":""} uploaded successfully. Refreshing…`;
+    setTimeout(() => navigateTo(currentPath), 1500);
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
