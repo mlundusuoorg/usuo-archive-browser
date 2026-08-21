@@ -341,6 +341,9 @@ Get-ChildItem -Path <span class="keyword">$SourceRoot</span> -Directory | ForEac
         <tr><td>SAS token expiry</td><td><span class="expiry-badge">⏰ August 31, 2026</span> — regenerate before this date</td></tr>
         <tr><td>AzCopy location</td><td><code>C:\Tools\AzCopy\azcopy.exe</code> on PSFS01v23, PSFS02V, AHFS02V</td></tr>
         <tr><td>Archive sections</td><td>ProdShared, Share, PS-Archive, AH-Archive</td></tr>
+        <tr><td>HR restricted folder group</td><td><code>USUO-Archive-HR</code> — ID: 06c7f5d4-b5f4-4f06-81c3-d8f9a1c778f0</td></tr>
+        <tr><td>HR Share restricted folder group</td><td><code>USUO-Archive-HR-Share</code> — ID: 0cb2df7f-33db-49bb-bf9d-f6bbeb65ce9e</td></tr>
+        <tr><td>checkaccess API</td><td>Checks user group membership via Microsoft Graph — <code>/api/checkaccess</code></td></tr>
         <tr><td>Search index files</td><td><code>usuo-archive/search-index-master.json</code> + four section files (<code>search-index-ProdShared.json</code>, etc.)</td></tr>
       </table>
 
@@ -350,6 +353,46 @@ Get-ChildItem -Path <span class="keyword">$SourceRoot</span> -Directory | ForEac
         <li><span class="step-text">Click Members → + Add members → search for the user → Select</span></li>
         <li><span class="step-text">Access takes effect within 5 minutes — no portal restart needed</span></li>
       </ol>
+
+      <h3 style="font-size:15px;font-weight:600;color:#1F4E79;margin:24px 0 12px">Managing restricted folder access (HR folders)</h3>
+      <p style="font-size:14px;color:#374151;margin-bottom:12px">
+        Two PS-Archive folders are restricted to specific staff only — <code>PS-Archive/HR</code> and <code>PS-Archive/HR Share</code>.
+        Access is controlled via two Entra ID security groups. Add or remove members to grant or revoke access instantly — no code changes needed.
+      </p>
+      <table class="ref-table" style="margin-bottom:16px">
+        <tr><th>Folder</th><th>Entra ID Group</th><th>Group ID</th></tr>
+        <tr><td><code>PS-Archive/HR</code></td><td><code>USUO-Archive-HR</code></td><td><code>06c7f5d4-b5f4-4f06-81c3-d8f9a1c778f0</code></td></tr>
+        <tr><td><code>PS-Archive/HR Share</code></td><td><code>USUO-Archive-HR-Share</code></td><td><code>0cb2df7f-33db-49bb-bf9d-f6bbeb65ce9e</code></td></tr>
+      </table>
+      <p style="font-size:13px;font-weight:600;color:#1F4E79;margin:12px 0 6px">To ADD a user to an HR folder:</p>
+      <ol class="steps">
+        <li><span class="step-text">Go to <a href="https://entra.microsoft.com" target="_blank" style="color:#2E75B6">entra.microsoft.com</a> → Groups → search for <code>USUO-Archive-HR</code> or <code>USUO-Archive-HR-Share</code></span></li>
+        <li><span class="step-text">Click the group → Members → <strong>+ Add members</strong></span></li>
+        <li><span class="step-text">Search for the user by name or email → Select → Add</span></li>
+        <li><span class="step-text">Access takes effect within 5 minutes — no deployment or restart needed</span></li>
+      </ol>
+      <p style="font-size:13px;font-weight:600;color:#1F4E79;margin:12px 0 6px">To REMOVE a user from an HR folder:</p>
+      <ol class="steps">
+        <li><span class="step-text">Go to entra.microsoft.com → Groups → find the group</span></li>
+        <li><span class="step-text">Click Members → check the box next to the user's name</span></li>
+        <li><span class="step-text">Click <strong>Remove</strong> at the top → confirm</span></li>
+        <li><span class="step-text">Access is revoked within 5 minutes</span></li>
+      </ol>
+      <div class="alert alert-info" style="margin-top:12px">
+        <span class="alert-icon">ℹ️</span>
+        <span>Users NOT in these groups will not see the HR or HR Share folders at all when browsing PS-Archive — the folders are completely hidden, not just blocked.</span>
+      </div>
+      <div class="alert alert-warn" style="margin-top:8px">
+        <span class="alert-icon">⚠️</span>
+        <span>To add a new restricted folder pair, update the <code>RESTRICTED_FOLDERS</code> object in <code>api/checkaccess/index.js</code> and the matching array in <code>public/index.html</code>, then deploy via GitHub.</span>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:600;color:#1F4E79;margin:24px 0 12px">Current HR folder members</h3>
+      <table class="ref-table" style="margin-bottom:16px">
+        <tr><th>Group</th><th>Current Members</th></tr>
+        <tr><td><code>USUO-Archive-HR</code></td><td>Micah Luce, Steven Brosvik, Mike Lund</td></tr>
+        <tr><td><code>USUO-Archive-HR-Share</code></td><td>Micah Luce, Steven Brosvik, Mike Lund, Natty Taylor</td></tr>
+      </table>
 
       <h3 style="font-size:15px;font-weight:600;color:#1F4E79;margin:24px 0 12px">Renewing the SAS token</h3>
       <ol class="steps">
