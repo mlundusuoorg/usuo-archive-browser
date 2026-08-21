@@ -1,8 +1,7 @@
 /**
  * Azure Static Web Apps API — /api/checkaccess
- * Checks if the signed-in user is a member of restricted folder groups.
- * Looks up user by email (userDetails) since SWA userId is a hashed value,
- * not the Entra Object ID that Microsoft Graph requires.
+ * Checks restricted folder group membership via Microsoft Graph.
+ * Looks up user by email then checks group membership.
  */
 
 const https = require("https");
@@ -12,38 +11,31 @@ const RESTRICTED_FOLDERS = {
   "PS-Archive/HR Share": "0cb2df7f-33db-49bb-bf9d-f6bbeb65ce9e",
 };
 
-let cachedToken = null;
-let tokenExpiry = 0;
-
+// No token cache — always get fresh token to avoid stale permission issues
 async function getAppToken(tenantId, clientId, clientSecret) {
-  if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
   const body = new URLSearchParams({
     grant_type:    "client_credentials",
     client_id:     clientId,
     client_secret: clientSecret,
     scope:         "https://graph.microsoft.com/.default",
   }).toString();
-  const data    = await httpPost("login.microsoftonline.com", `/${tenantId}/oauth2/v2.0/token`, body, "application/x-www-form-urlencoded");
-  const parsed  = JSON.parse(data);
-  cachedToken   = parsed.access_token;
-  tokenExpiry   = Date.now() + (parsed.expires_in - 300) * 1000;
-  return cachedToken;
+  const data   = await httpPost("login.microsoftonline.com", `/${tenantId}/oauth2/v2.0/token`, body, "application/x-www-form-urlencoded");
+  const parsed = JSON.parse(data);
+  return parsed.access_token;
 }
 
 async function getEntraUserId(token, email) {
-  // Look up the real Entra Object ID by email address
-  const path = `/v1.0/users/${encodeURIComponent(email)}?$select=id`;
-  const data = await httpGet("graph.microsoft.com", path, `Bearer ${token}`);
+  const data = await httpGet("graph.microsoft.com", `/v1.0/users/${encodeURIComponent(email)}?$select=id,displayName`, `Bearer ${token}`);
   const user = JSON.parse(data);
   return user.id;
 }
 
 async function checkMembership(token, entraUserId, groupId) {
-  const body = JSON.stringify({ groupIds: [groupId] });
   try {
+    const body   = JSON.stringify({ groupIds: [groupId] });
     const data   = await httpPost("graph.microsoft.com", `/v1.0/users/${entraUserId}/checkMemberObjects`, body, "application/json", `Bearer ${token}`);
     const result = JSON.parse(data);
-    return result.value && result.value.includes(groupId);
+    return Array.isArray(result.value) && result.value.includes(groupId);
   } catch {
     return false;
   }
@@ -59,7 +51,6 @@ module.exports = async function (context, req) {
     return;
   }
 
-  // Accept either userId (hashed) or userEmail — we need email to look up Entra ID
   const userEmail = req.query.userEmail;
   if (!userEmail) {
     context.res = { status: 400, body: { error: "userEmail required" } };
@@ -67,9 +58,18 @@ module.exports = async function (context, req) {
   }
 
   try {
-    const token       = await getAppToken(tenantId, clientId, clientSecret);
-    const entraUserId = await getEntraUserId(token, userEmail);
+    const token = await getAppToken(tenantId, clientId, clientSecret);
 
+    // Step 1 — resolve email to Entra Object ID
+    let entraUserId;
+    try {
+      entraUserId = await getEntraUserId(token, userEmail);
+    } catch (err) {
+      context.res = { status: 500, body: { error: `User lookup failed for ${userEmail}: ${err.message}` } };
+      return;
+    }
+
+    // Step 2 — check each restricted group
     const checks = await Promise.all(
       Object.entries(RESTRICTED_FOLDERS).map(async ([folder, groupId]) => {
         const isMember = await checkMembership(token, entraUserId, groupId);
@@ -81,8 +81,8 @@ module.exports = async function (context, req) {
 
     context.res = {
       status: 200,
-      headers: { "Content-Type": "application/json", "Cache-Control": "private, max-age=300" },
-      body: { allowedFolders, restrictedFolders: Object.keys(RESTRICTED_FOLDERS) },
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
+      body: { allowedFolders, restrictedFolders: Object.keys(RESTRICTED_FOLDERS), entraUserId },
     };
   } catch (err) {
     context.res = { status: 500, body: { error: err.message } };
@@ -93,7 +93,7 @@ function httpGet(hostname, path, authHeader) {
   return new Promise((resolve, reject) => {
     const opts = {
       hostname, path, method: "GET",
-      headers: { "Authorization": authHeader, "Content-Type": "application/json" },
+      headers: { "Authorization": authHeader, "Accept": "application/json" },
     };
     const req = https.request(opts, res => {
       let d = "";
@@ -114,7 +114,7 @@ function httpPost(hostname, path, body, contentType, authHeader) {
     const opts = {
       hostname, path, method: "POST",
       headers: {
-        "Content-Type": contentType,
+        "Content-Type":   contentType,
         "Content-Length": buf.length,
         ...(authHeader ? { "Authorization": authHeader } : {}),
       },
