@@ -226,6 +226,12 @@ const SECTION_COLORS = {
 let currentPath    = null;
 let srResultCache  = [];  // stores folder paths for search result clicks
 
+// ── Restricted folder access ──────────────────────────────────────────────────
+const RESTRICTED_FOLDERS = ["PS-Archive/HR", "PS-Archive/HR Share"];
+let userAllowedFolders   = null;  // null = not yet loaded, [] = loaded but no access
+let accessCheckDone      = false;
+let currentUserId        = null;
+
 
 function showSearchResults() {
   document.getElementById("search-results").style.display = "block";
@@ -509,7 +515,10 @@ async function navigateTo(path) {
 function renderItems(items) {
   const folders = items.filter(i=> i.isFolder).sort((a,b)=>a.name.localeCompare(b.name));
   const files   = items.filter(i=>!i.isFolder).sort((a,b)=>a.name.localeCompare(b.name));
-  const sorted  = [...folders, ...files];
+  // Filter out restricted folders user cannot access
+  const visibleFolders = folders.filter(i => isAccessible(i.path));
+  const visibleFiles   = files.filter(i => isAccessible(i.path));
+  const sorted  = [...visibleFolders, ...visibleFiles];
   const isDigital = currentPath && currentPath.startsWith("Digital-Assets");
 
   if (!sorted.length) {
@@ -629,6 +638,36 @@ async function handleFileSelect(files) {
   }
 }
 
+
+// ── Access check for restricted folders ───────────────────────────────────────
+async function loadAccessCheck(userId) {
+  if (!userId) { accessCheckDone = true; return; }
+  try {
+    const res  = await fetch(`/api/checkaccess?userId=${encodeURIComponent(userId)}`);
+    const data = await res.json();
+    userAllowedFolders = data.allowedFolders || [];
+  } catch {
+    userAllowedFolders = [];
+  }
+  accessCheckDone = true;
+  // Re-render current view if we're inside PS-Archive
+  if (currentPath && currentPath.startsWith("PS-Archive")) {
+    renderItems(allItems);
+  }
+}
+
+function isAccessible(itemPath) {
+  // Check if this path is a restricted folder the user can't access
+  for (const restricted of RESTRICTED_FOLDERS) {
+    if (itemPath === restricted || itemPath.startsWith(restricted + "/")) {
+      if (!userAllowedFolders || !userAllowedFolders.includes(restricted)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   const principal = await checkAuth();
@@ -646,6 +685,11 @@ async function init() {
 
   // Load search index in background — don't block UI
   loadSearchIndex();
+
+  // Check restricted folder access in background
+  currentUserId = principal.userId || principal.userDetails;
+  loadAccessCheck(currentUserId);
+
   renderRoot();
 }
 
