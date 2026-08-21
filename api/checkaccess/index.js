@@ -1,7 +1,6 @@
 /**
  * Azure Static Web Apps API — /api/checkaccess
- * Checks restricted folder group membership via Microsoft Graph.
- * Looks up user by email then checks group membership.
+ * Debug version — returns raw group member data to diagnose issue.
  */
 
 const https = require("https");
@@ -11,7 +10,6 @@ const RESTRICTED_FOLDERS = {
   "PS-Archive/HR Share": "0cb2df7f-33db-49bb-bf9d-f6bbeb65ce9e",
 };
 
-// No token cache — always get fresh token to avoid stale permission issues
 async function getAppToken(tenantId, clientId, clientSecret) {
   const body = new URLSearchParams({
     grant_type:    "client_credentials",
@@ -25,20 +23,8 @@ async function getAppToken(tenantId, clientId, clientSecret) {
 }
 
 async function getEntraUserId(token, email) {
-  const data = await httpGet("graph.microsoft.com", `/v1.0/users/${encodeURIComponent(email)}?$select=id,displayName`, `Bearer ${token}`);
-  const user = JSON.parse(data);
-  return user.id;
-}
-
-async function checkMembership(token, entraUserId, groupId) {
-  try {
-    const body   = JSON.stringify({ groupIds: [groupId] });
-    const data   = await httpPost("graph.microsoft.com", `/v1.0/users/${entraUserId}/checkMemberObjects`, body, "application/json", `Bearer ${token}`);
-    const result = JSON.parse(data);
-    return Array.isArray(result.value) && result.value.includes(groupId);
-  } catch {
-    return false;
-  }
+  const data = await httpGet("graph.microsoft.com", `/v1.0/users/${encodeURIComponent(email)}?$select=id`, `Bearer ${token}`);
+  return JSON.parse(data).id;
 }
 
 module.exports = async function (context, req) {
@@ -58,31 +44,35 @@ module.exports = async function (context, req) {
   }
 
   try {
-    const token = await getAppToken(tenantId, clientId, clientSecret);
+    const token       = await getAppToken(tenantId, clientId, clientSecret);
+    const entraUserId = await getEntraUserId(token, userEmail);
+    const debug       = {};
 
-    // Step 1 — resolve email to Entra Object ID
-    let entraUserId;
-    try {
-      entraUserId = await getEntraUserId(token, userEmail);
-    } catch (err) {
-      context.res = { status: 500, body: { error: `User lookup failed for ${userEmail}: ${err.message}` } };
-      return;
+    // Try fetching group members for each restricted group
+    for (const [folder, groupId] of Object.entries(RESTRICTED_FOLDERS)) {
+      try {
+        const data    = await httpGet("graph.microsoft.com", `/v1.0/groups/${groupId}/members?$select=id,displayName,userPrincipalName`, `Bearer ${token}`);
+        const parsed  = JSON.parse(data);
+        debug[folder] = {
+          groupId,
+          memberCount: parsed.value ? parsed.value.length : 0,
+          members: parsed.value ? parsed.value.map(m => ({ id: m.id, name: m.displayName, upn: m.userPrincipalName })) : [],
+          userFound: parsed.value ? parsed.value.some(m => m.id === entraUserId) : false,
+          error: null,
+        };
+      } catch (err) {
+        debug[folder] = { groupId, error: err.message };
+      }
     }
 
-    // Step 2 — check each restricted group
-    const checks = await Promise.all(
-      Object.entries(RESTRICTED_FOLDERS).map(async ([folder, groupId]) => {
-        const isMember = await checkMembership(token, entraUserId, groupId);
-        return { folder, isMember };
-      })
-    );
-
-    const allowedFolders = checks.filter(c => c.isMember).map(c => c.folder);
+    const allowedFolders = Object.entries(debug)
+      .filter(([, v]) => v.userFound)
+      .map(([folder]) => folder);
 
     context.res = {
       status: 200,
       headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
-      body: { allowedFolders, restrictedFolders: Object.keys(RESTRICTED_FOLDERS), entraUserId },
+      body: { allowedFolders, restrictedFolders: Object.keys(RESTRICTED_FOLDERS), entraUserId, debug },
     };
   } catch (err) {
     context.res = { status: 500, body: { error: err.message } };
