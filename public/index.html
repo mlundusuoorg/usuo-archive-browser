@@ -643,7 +643,7 @@ async function handleFileSelect(files) {
 async function loadAccessCheck(userId) {
   if (!userId) { accessCheckDone = true; return; }
   try {
-    const res  = await fetch(`/api/checkaccess?userId=${encodeURIComponent(userId)}`);
+    const res  = await fetch(`/api/checkaccess?userEmail=${encodeURIComponent(userId)}`);  // userId here is actually the email
     const data = await res.json();
     userAllowedFolders = data.allowedFolders || [];
   } catch {
@@ -687,7 +687,7 @@ async function init() {
   loadSearchIndex();
 
   // Check restricted folder access in background
-  currentUserId = principal.userId || principal.userDetails;
+  currentUserId = principal.userDetails;  // email address — needed for Graph API lookup
   loadAccessCheck(currentUserId);
 
   renderRoot();
