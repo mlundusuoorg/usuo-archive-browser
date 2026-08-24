@@ -133,6 +133,40 @@
                   font-size:12px;color:#7F6000;display:none;align-items:center;gap:8px}
     .index-banner.visible{display:flex}
 
+    /* ── Help overlay ── */
+    .help-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;
+                  display:none;align-items:flex-start;justify-content:center;
+                  padding:40px 16px;overflow-y:auto}
+    .help-overlay.open{display:flex}
+    .help-box{background:#fff;border-radius:12px;max-width:720px;width:100%;
+              box-shadow:0 8px 40px rgba(0,0,0,.25);position:relative;overflow:hidden}
+    .help-close{position:absolute;top:12px;right:14px;background:none;border:none;
+                font-size:22px;cursor:pointer;color:#6b7280;line-height:1}
+    .help-close:hover{color:#1f2937}
+    .help-top-bar{background:#1F4E79;color:#fff;padding:12px 40px 12px 16px;
+                  font-size:13px;text-align:center;font-weight:600}
+    .help-url{background:#DEEAF1;padding:8px 16px;text-align:center;font-size:13px;
+              color:#1F4E79;font-weight:600;border-bottom:1px solid #e5e7eb}
+    .help-body{padding:16px}
+    .help-section{margin-bottom:14px}
+    .help-section-title{background:#1F4E79;color:#fff;padding:5px 10px;
+                        font-size:13px;font-weight:700;border-radius:3px;margin-bottom:6px}
+    .help-section-title.green{background:#1B5E20}
+    .help-step{font-size:13px;color:#2E2E2E;padding:3px 0 3px 10px;line-height:1.5}
+    .help-step b{color:#2E75B6}
+    .help-note{font-size:12px;color:#7F6000;background:#FFF9E6;padding:4px 10px;
+               border-left:3px solid #2E75B6;margin-top:4px;font-style:italic}
+    .help-note.warn{background:#FCE4D6;color:#C62828;border-color:#C62828}
+    .help-archive-table{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}
+    .help-archive-table td{padding:4px 8px;border-bottom:1px solid #f3f4f6}
+    .help-archive-table tr:nth-child(odd) td{background:#DEEAF1}
+    .help-archive-table td:first-child{font-weight:600;color:#1F4E79;white-space:nowrap}
+    .help-footer{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+    .help-footer-box{padding:10px 12px;border-radius:6px;font-size:12px}
+    .help-footer-box b{display:block;margin-bottom:4px;font-size:13px}
+    .help-footer-box.blue{background:#DEEAF1;color:#1F4E79}
+    .help-footer-box.amber{background:#FFF9E6;color:#7F6000}
+
     @media(max-width:600px){
       .fl-header,.fl-item{grid-template-columns:1fr 100px}
       .file-date{display:none}
@@ -148,6 +182,11 @@
   <div class="hd-left">
     <div class="hd-logo" onclick="goRoot()">🎼 USUO</div>
     <div class="hd-sub">Archive Portal</div>
+    <button onclick="toggleHelp()" title="Quick Reference Guide"
+      style="background:#F9C403;color:#1F4E79;border:none;border-radius:50%;
+             width:28px;height:28px;font-size:15px;font-weight:900;cursor:pointer;
+             display:flex;align-items:center;justify-content:center;
+             box-shadow:0 1px 4px rgba(0,0,0,.3);flex-shrink:0;line-height:1">?</button>
   </div>
   <div class="user-info" id="user-info" style="display:none">
     <div class="user-avatar" id="user-avatar">?</div>
@@ -239,6 +278,17 @@ function showSearchResults() {
 
 function hideSearchResults() {
   document.getElementById("search-results").style.display = "none";
+}
+
+
+function toggleHelp() {
+  const overlay = document.getElementById("help-overlay");
+  overlay.classList.toggle("open");
+  document.body.style.overflow = overlay.classList.contains("open") ? "hidden" : "";
+}
+
+function closeHelpOutside(e) {
+  if (e.target === document.getElementById("help-overlay")) toggleHelp();
 }
 
 function goToSearchResult(idx) {
@@ -699,5 +749,79 @@ init();
 <div style="text-align:center;padding:16px;font-size:11px;color:#9ca3af">
   <a href="/it" style="color:#9ca3af;text-decoration:none;opacity:.6" title="IT Admin">&#9881; IT Admin</a>
 </div>
+
+<!-- Help overlay -->
+<div class="help-overlay" id="help-overlay" onclick="closeHelpOutside(event)">
+  <div class="help-box">
+    <button class="help-close" onclick="toggleHelp()">×</button>
+    <div class="help-top-bar">Utah Symphony | Utah Opera &nbsp;—&nbsp; Archive &amp; Digital Assets Portal &nbsp;|&nbsp; Quick Reference</div>
+    <div class="help-url">Portal URL: <span style="font-family:monospace">https://archive.myusuo.org</span> &nbsp;or use the <strong>USUO Archive</strong> bookmark in Chrome under the USUO folder</div>
+
+    <div class="help-body">
+
+      <div class="help-section">
+        <div class="help-section-title">STEP 1 — Sign In with Your Microsoft 365 Account</div>
+        <div class="help-step"><b>1.</b> Open Chrome and go to <span style="font-family:monospace;color:#2E75B6">https://archive.myusuo.org</span> or click the USUO Archive bookmark</div>
+        <div class="help-step"><b>2.</b> Click the blue <b>Sign in with Microsoft</b> button</div>
+        <div class="help-step"><b>3.</b> Enter your USUO email (e.g. <b>jsmith@usuo.org</b>) → click Next → enter your password → Sign in</div>
+        <div class="help-step"><b>4.</b> Complete <b>MFA</b> if prompted (approve on your phone as usual)</div>
+        <div class="help-step"><b>5.</b> <b>First time only:</b> click <b>Grant Consent</b> when asked — you will not see this again</div>
+        <div class="help-note">Note: Use the same email and password you use for Outlook and Teams — no new account needed.</div>
+      </div>
+
+      <div class="help-section">
+        <div class="help-section-title">STEP 2 — The Portal Home Page</div>
+        <div class="help-step" style="margin-bottom:4px">After signing in you will see five tiles — one for each archive section:</div>
+        <table class="help-archive-table">
+          <tr><td>🎭 PS Archive</td><td>Formerly Q:\PSDepShare\{Dept}\Archive</td></tr>
+          <tr><td>🎵 AH Archive</td><td>Formerly T:\AHDepShare\{Dept}\Archive</td></tr>
+          <tr><td>📂 ProdShared</td><td>Formerly P: drive (pre-2012 files)</td></tr>
+          <tr><td>📂 Share Archive</td><td>Formerly S: drive (pre-2012 files)</td></tr>
+          <tr><td>🎨 Digital Assets</td><td>Read/write — upload, download, overwrite</td></tr>
+        </table>
+        <div class="help-step" style="margin-top:4px">Click any tile to browse that section. A <b>global search bar</b> appears at the top of every page.</div>
+      </div>
+
+      <div class="help-section">
+        <div class="help-section-title">STEP 3 — Search Across All Archives</div>
+        <div class="help-step"><b>1.</b> Click the search bar at the top of any page and type part of a file name</div>
+        <div class="help-step"><b>2.</b> Results appear instantly — showing the file name, which archive it's in, and the folder path</div>
+        <div class="help-step"><b>3.</b> Click any result to navigate directly to the folder containing that file</div>
+        <div class="help-note">Note: Search covers all 556,000+ files across all five sections simultaneously. Press Escape to close results.</div>
+      </div>
+
+      <div class="help-section">
+        <div class="help-section-title">STEP 4 — Browse Folders &amp; Download Files</div>
+        <div class="help-step"><b>1.</b> Click a tile or a search result to open a folder</div>
+        <div class="help-step"><b>2.</b> Click any subfolder to navigate deeper — use the breadcrumb trail at the top to go back</div>
+        <div class="help-step"><b>3.</b> Click a file row or the <b>⬇ Download</b> button — the file saves directly, no zip</div>
+        <div class="help-step"><b>4.</b> Click <b>🏠 Archives</b> in the breadcrumb at any time to return to the home page</div>
+        <div class="help-note">Note: Archive files are read-only — you can view and download but cannot edit, delete, or upload.</div>
+      </div>
+
+      <div class="help-section">
+        <div class="help-section-title green">STEP 5 — Digital Assets (Upload &amp; Overwrite)</div>
+        <div class="help-step"><b>1.</b> Click the <b>🎨 Digital Assets</b> tile on the home page</div>
+        <div class="help-step"><b>2.</b> Navigate to the folder where you want to upload</div>
+        <div class="help-step"><b>3.</b> Click the green <b>upload zone</b> at the top, or drag files from Windows Explorer onto it</div>
+        <div class="help-step"><b>4.</b> A progress bar shows upload status — the folder refreshes automatically when complete</div>
+        <div class="help-note warn">⚠ Warning: Uploading a file with the same name as an existing file will overwrite it permanently with no undo.</div>
+      </div>
+
+      <div class="help-footer">
+        <div class="help-footer-box blue">
+          <b>Signing Out</b>
+          Click your name or initials in the top right corner → click <strong>Sign out</strong>
+        </div>
+        <div class="help-footer-box amber">
+          <b>Need Help?</b>
+          Email IT: <a href="mailto:mlund@usuo.org" style="color:#2E75B6;font-weight:600">mlund@usuo.org</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
