@@ -658,7 +658,7 @@ function renderItems(items) {
     } else {
       const p = item.path.replace(/'/g,"\\'");
       const n = item.name.replace(/'/g,"\\'");
-      const previewable = isPreviewable(item.name);
+      const previewable = isPreviewable(item.name, item.path);
       rows += `<div class="fl-item" onclick="downloadFile('${p}','${n}')">
         <div class="file-name"><span class="file-icon">${icon}</span>
           <span class="file-label">${item.name}</span></div>
@@ -770,10 +770,24 @@ function isAccessible(itemPath) {
 
 
 // ── File Preview ──────────────────────────────────────────────────────────────
-function isPreviewable(name) {
+function isPreviewable(name, path) {
   const ext = name.split(".").pop().toLowerCase();
-  return ["jpg","jpeg","png","gif","webp","svg","bmp",
-          "pdf","txt","csv","log","md","json","xml"].includes(ext);
+  const native = ["jpg","jpeg","png","gif","webp","svg","bmp",
+                  "pdf","txt","csv","log","md","json","xml"];
+  const office = ["doc","docx","xls","xlsx","ppt","pptx"];
+  if (native.includes(ext)) return true;
+  // Office preview via Microsoft viewer — but NEVER for HR/Finance folders
+  if (office.includes(ext) && !isSensitivePath(path)) return true;
+  return false;
+}
+
+// HR, Finance, and other sensitive folders must never be sent to the
+// external Microsoft Office viewer. They stay download-only.
+function isSensitivePath(path) {
+  if (!path) return true; // fail safe — if unknown, treat as sensitive
+  const lower = path.toLowerCase();
+  const blocked = ["/hr", "hr share", "/finance", "/payroll", "/accounting"];
+  return blocked.some(b => lower.includes(b));
 }
 
 async function openPreview(path, name) {
@@ -797,6 +811,7 @@ async function openPreview(path, name) {
     const data = await res.json();
     const url  = data.url;
 
+    const officeExts = ["doc","docx","xls","xlsx","ppt","pptx"];
     if (["jpg","jpeg","png","gif","webp","svg","bmp"].includes(ext)) {
       bodyEl.innerHTML = `<img src="${url}" alt="${escHtml(name)}"/>`;
     } else if (ext === "pdf") {
@@ -806,6 +821,11 @@ async function openPreview(path, name) {
       let text = await txtRes.text();
       if (text.length > 100000) text = text.slice(0, 100000) + "\n\n… (preview truncated — download for full file)";
       bodyEl.innerHTML = `<pre>${escHtml(text)}</pre>`;
+    } else if (officeExts.includes(ext)) {
+      // Microsoft Office Online viewer — renders Word/Excel/PowerPoint in an iframe.
+      // The SAS URL must be publicly reachable by Microsoft's servers (it is).
+      const viewerUrl = "https://view.officeapps.live.com/op/embed.aspx?src=" + encodeURIComponent(url);
+      bodyEl.innerHTML = `<iframe src="${viewerUrl}"></iframe>`;
     } else {
       bodyEl.innerHTML = `<div class="pv-unsupported">Preview not available for this file type.<br>Use the Download button above.</div>`;
     }
