@@ -1,8 +1,8 @@
 /**
  * Azure Static Web Apps API function — /api/download
- * Generates a short-lived SAS URL for a specific blob.
- * Returns the URL with correct Content-Disposition so browsers
- * download the file directly without zipping.
+ * Generates a SAS URL for a specific blob.
+ *   Default: Content-Disposition=attachment (forces download, no zip)
+ *   ?preview=1: Content-Disposition=inline (for in-browser preview)
  */
 
 module.exports = async function (context, req) {
@@ -21,17 +21,19 @@ module.exports = async function (context, req) {
     return;
   }
 
+  const preview     = req.query.preview === "1";
   const sasClean    = sas.startsWith("?") ? sas : `?${sas}`;
   const encodedPath = blobPath.split("/").map(encodeURIComponent).join("/");
   const fileName    = blobPath.split("/").pop();
 
-  // Build SAS URL — append content-disposition to force browser download (no zip)
-  const disposition = encodeURIComponent(`attachment; filename="${fileName}"`);
-  const downloadUrl = `https://${account}.blob.core.windows.net/${container}/${encodedPath}${sasClean}&rscd=${disposition}`;
+  // inline for preview, attachment for download
+  const dispType    = preview ? "inline" : "attachment";
+  const disposition = encodeURIComponent(`${dispType}; filename="${fileName}"`);
+  const url         = `https://${account}.blob.core.windows.net/${container}/${encodedPath}${sasClean}&rscd=${disposition}`;
 
   context.res = {
     status: 200,
     headers: { "Content-Type": "application/json" },
-    body: { url: downloadUrl, path: blobPath, name: fileName },
+    body: { url, path: blobPath, name: fileName },
   };
 };

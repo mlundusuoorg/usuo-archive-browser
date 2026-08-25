@@ -806,8 +806,8 @@ async function openPreview(path, name) {
   const ext = name.split(".").pop().toLowerCase();
 
   try {
-    // Get a direct SAS URL for the file
-    const res  = await fetch(`/api/download?path=${encodeURIComponent(path)}`);
+    // Get an inline SAS URL for preview (Content-Disposition: inline)
+    const res  = await fetch(`/api/download?path=${encodeURIComponent(path)}&preview=1`);
     const data = await res.json();
     const url  = data.url;
 
@@ -816,11 +816,12 @@ async function openPreview(path, name) {
       bodyEl.innerHTML = `<img src="${url}" alt="${escHtml(name)}"/>`;
     } else if (ext === "pdf") {
       bodyEl.innerHTML = `<iframe src="${url}"></iframe>`;
-    } else if (["txt","csv","log","md","json","xml"].includes(ext)) {
-      const txtRes = await fetch(url);
-      let text = await txtRes.text();
-      if (text.length > 100000) text = text.slice(0, 100000) + "\n\n… (preview truncated — download for full file)";
-      bodyEl.innerHTML = `<pre>${escHtml(text)}</pre>`;
+    } else if (["txt","log","md","json","xml"].includes(ext)) {
+      // Render in an iframe — avoids CORS issues with direct fetch
+      bodyEl.innerHTML = `<iframe src="${url}"></iframe>`;
+    } else if (ext === "csv") {
+      // CSV: force browser to show as plain text in the iframe (not download)
+      bodyEl.innerHTML = `<iframe src="${url}"></iframe>`;
     } else if (officeExts.includes(ext)) {
       // Microsoft Office Online viewer — renders Word/Excel/PowerPoint in an iframe.
       // The SAS URL must be publicly reachable by Microsoft's servers (it is).
