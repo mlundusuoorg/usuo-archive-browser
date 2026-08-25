@@ -1,0 +1,8 @@
+{
+  "name": "usuo-archive-api",
+  "version": "1.0.0",
+  "description": "USUO Archive Portal API functions",
+  "dependencies": {
+    "archiver": "^6.0.1"
+  }
+}

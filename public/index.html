@@ -99,10 +99,10 @@
     /* File list */
     .container{padding:24px;max-width:1200px;margin:0 auto}
     .file-list{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden}
-    .fl-header{display:grid;grid-template-columns:1fr 160px 140px;padding:10px 20px;
+    .fl-header{display:grid;grid-template-columns:1fr 130px 220px;padding:10px 20px;
                background:#f9fafb;border-bottom:1px solid #e5e7eb;font-size:12px;
                font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px}
-    .fl-item{display:grid;grid-template-columns:1fr 160px 140px;padding:11px 20px;
+    .fl-item{display:grid;grid-template-columns:1fr 130px 220px;padding:11px 20px;
              border-bottom:1px solid #f3f4f6;align-items:center;transition:background .1s;cursor:pointer}
     .fl-item:last-child{border-bottom:none}
     .fl-item:hover{background:#f8fafc}
@@ -118,6 +118,38 @@
             background:#DEEAF1;color:#1F4E79;border:none;border-radius:4px;
             font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
     .dl-btn:hover{background:#BDD7EE}
+    .pv-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+            background:#E8EAF6;color:#3949AB;border:none;border-radius:4px;
+            font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+    .pv-btn:hover{background:#C5CAE9}
+    .zip-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+             background:#FFF3E0;color:#E65100;border:none;border-radius:4px;
+             font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+    .zip-btn:hover{background:#FFE0B2}
+
+    /* Preview overlay */
+    .pv-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:600;
+                display:none;align-items:center;justify-content:center;padding:32px}
+    .pv-overlay.open{display:flex}
+    .pv-box{background:#fff;border-radius:12px;max-width:900px;max-height:90vh;width:100%;
+            display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.4)}
+    .pv-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;
+             background:#1F4E79;color:#fff}
+    .pv-title{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+    .pv-actions{display:flex;gap:8px;align-items:center;flex-shrink:0;margin-left:12px}
+    .pv-dl{background:#DEEAF1;color:#1F4E79;border:none;border-radius:5px;padding:6px 12px;
+           font-size:13px;font-weight:600;cursor:pointer}
+    .pv-dl:hover{background:#BDD7EE}
+    .pv-close{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1}
+    .pv-content{flex:1;overflow:auto;background:#f3f4f6;display:flex;align-items:center;
+                justify-content:center;min-height:300px}
+    .pv-content img{max-width:100%;max-height:82vh;display:block}
+    .pv-content iframe{width:100%;height:82vh;border:none;background:#fff}
+    .pv-content pre{width:100%;height:100%;margin:0;padding:16px;background:#fff;
+                    font-family:"Courier New",monospace;font-size:13px;white-space:pre-wrap;
+                    word-break:break-word;overflow:auto;text-align:left}
+    .pv-loading{padding:40px;text-align:center;color:#6b7280}
+    .pv-unsupported{padding:40px;text-align:center;color:#6b7280}
 
     /* States */
     .loading-state,.empty-state,.error-state{padding:60px 20px;text-align:center;color:#6b7280}
@@ -612,21 +644,29 @@ function renderItems(items) {
   sorted.forEach(item => {
     const icon = getIcon(item.name, item.isFolder);
     if (item.isFolder) {
+      const fp = item.path.replace(/'/g,"\\'");
+      const fn = item.name.replace(/'/g,"\\'");
       rows += `<div class="fl-item folder" onclick="navigateTo('${item.path}')">
         <div class="file-name"><span class="file-icon">${icon}</span>
           <span class="file-label">${item.name}</span></div>
         <div class="file-date">—</div>
-        <div class="file-size">—</div>
+        <div class="file-size">
+          <button class="zip-btn" title="Download folder as ZIP"
+            onclick="event.stopPropagation();downloadZip('${fp}','${fn}')">🗜 ZIP</button>
+        </div>
       </div>`;
     } else {
       const p = item.path.replace(/'/g,"\\'");
       const n = item.name.replace(/'/g,"\\'");
+      const previewable = isPreviewable(item.name);
       rows += `<div class="fl-item" onclick="downloadFile('${p}','${n}')">
         <div class="file-name"><span class="file-icon">${icon}</span>
           <span class="file-label">${item.name}</span></div>
         <div class="file-date">${fmtDate(item.lastModified)}</div>
         <div class="file-size">
           <span>${fmtSize(item.size)}</span>
+          ${previewable ? `<button class="pv-btn" title="Preview"
+            onclick="event.stopPropagation();openPreview('${p}','${n}')">👁 Preview</button>` : ``}
           <button class="dl-btn"
             onclick="event.stopPropagation();downloadFile('${p}','${n}')">⬇ Download</button>
         </div>
@@ -727,6 +767,105 @@ function isAccessible(itemPath) {
   }
   return true;
 }
+
+
+// ── File Preview ──────────────────────────────────────────────────────────────
+function isPreviewable(name) {
+  const ext = name.split(".").pop().toLowerCase();
+  return ["jpg","jpeg","png","gif","webp","svg","bmp",
+          "pdf","txt","csv","log","md","json","xml"].includes(ext);
+}
+
+async function openPreview(path, name) {
+  const overlay = document.getElementById("pv-overlay");
+  const titleEl = document.getElementById("pv-title");
+  const bodyEl  = document.getElementById("pv-content");
+  const dlBtn   = document.getElementById("pv-dl-btn");
+
+  titleEl.textContent = name;
+  bodyEl.innerHTML = `<div class="pv-loading">Loading preview…</div>`;
+  overlay.classList.add("open");
+  document.body.style.overflow = "hidden";
+
+  dlBtn.onclick = () => downloadFile(path, name);
+
+  const ext = name.split(".").pop().toLowerCase();
+
+  try {
+    // Get a direct SAS URL for the file
+    const res  = await fetch(`/api/download?path=${encodeURIComponent(path)}`);
+    const data = await res.json();
+    const url  = data.url;
+
+    if (["jpg","jpeg","png","gif","webp","svg","bmp"].includes(ext)) {
+      bodyEl.innerHTML = `<img src="${url}" alt="${escHtml(name)}"/>`;
+    } else if (ext === "pdf") {
+      bodyEl.innerHTML = `<iframe src="${url}"></iframe>`;
+    } else if (["txt","csv","log","md","json","xml"].includes(ext)) {
+      const txtRes = await fetch(url);
+      let text = await txtRes.text();
+      if (text.length > 100000) text = text.slice(0, 100000) + "\n\n… (preview truncated — download for full file)";
+      bodyEl.innerHTML = `<pre>${escHtml(text)}</pre>`;
+    } else {
+      bodyEl.innerHTML = `<div class="pv-unsupported">Preview not available for this file type.<br>Use the Download button above.</div>`;
+    }
+  } catch (err) {
+    bodyEl.innerHTML = `<div class="pv-unsupported">Could not load preview: ${escHtml(err.message)}<br>Try downloading instead.</div>`;
+  }
+}
+
+function closePreview() {
+  document.getElementById("pv-overlay").classList.remove("open");
+  document.body.style.overflow = "";
+  document.getElementById("pv-content").innerHTML = "";
+}
+
+function closePreviewOutside(e) {
+  if (e.target === document.getElementById("pv-overlay")) closePreview();
+}
+
+// ── Folder ZIP download ───────────────────────────────────────────────────────
+async function downloadZip(folderPath, folderName) {
+  const toast = document.getElementById("zip-toast");
+  toast.style.display = "block";
+  toast.style.background = "#1F4E79";
+  toast.textContent = `🗜 Preparing "${folderName}.zip"… this may take a moment.`;
+
+  try {
+    const res = await fetch(`/api/zipfolder?prefix=${encodeURIComponent(folderPath)}`);
+
+    if (res.status === 413) {
+      const info = await res.json();
+      toast.style.background = "#C62828";
+      toast.innerHTML = `⚠ "${folderName}" is too large to ZIP (${info.fileCount} files, ${info.totalMB} MB).<br>` +
+                        `Limit is ${info.maxFiles} files / ${info.maxMB} MB. Download files individually or contact IT.`;
+      setTimeout(() => { toast.style.display = "none"; }, 8000);
+      return;
+    }
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement("a"), { href: url, download: folderName + ".zip" });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.style.background = "#2E7D32";
+    toast.textContent = `✓ "${folderName}.zip" downloaded.`;
+    setTimeout(() => { toast.style.display = "none"; }, 3000);
+  } catch (err) {
+    toast.style.background = "#C62828";
+    toast.textContent = `⚠ ZIP failed: ${err.message}`;
+    setTimeout(() => { toast.style.display = "none"; }, 5000);
+  }
+}
+
+// Close preview on Escape
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && document.getElementById("pv-overlay").classList.contains("open")) {
+    closePreview();
+  }
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
@@ -832,6 +971,28 @@ init();
     </div>
   </div>
 </div>
+
+
+<!-- Preview overlay -->
+<div class="pv-overlay" id="pv-overlay" onclick="closePreviewOutside(event)">
+  <div class="pv-box">
+    <div class="pv-head">
+      <div class="pv-title" id="pv-title">Preview</div>
+      <div class="pv-actions">
+        <button class="pv-dl" id="pv-dl-btn">⬇ Download</button>
+        <button class="pv-close" onclick="closePreview()">×</button>
+      </div>
+    </div>
+    <div class="pv-content" id="pv-content">
+      <div class="pv-loading">Loading preview…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ZIP progress toast -->
+<div id="zip-toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+     background:#1F4E79;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;
+     font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.3);z-index:700;display:none"></div>
 
 </body>
 </html>
