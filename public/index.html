@@ -216,7 +216,7 @@
     <div class="global-search-wrap">
       <span class="global-search-icon">🔍</span>
       <input class="global-search-input" id="global-search"
-             type="text" placeholder="Search all archives by file name…"
+             type="text" placeholder="Search all archives by file name (type 3+ letters)…"
              oninput="onGlobalSearch(this.value)"
              autocomplete="off" />
       <button class="global-search-clear" id="search-clear"
@@ -270,6 +270,7 @@ const RESTRICTED_FOLDERS = ["PS-Archive/HR", "PS-Archive/HR Share"];
 let userAllowedFolders   = null;  // null = not yet loaded, [] = loaded but no access
 let accessCheckDone      = false;
 let currentUserId        = null;
+window._searchSeq        = 0;  // guards against out-of-order search results
 
 
 function showSearchResults() {
@@ -326,7 +327,6 @@ let masterIndex     = null; // metadata only
 async function loadSearchIndex() {
   const status = document.getElementById("search-status");
   try {
-    // Load master index first — it's tiny (just counts)
     const res = await fetch("/api/getindex?section=master");
     if (!res.ok) throw new Error("Master index not found");
     masterIndex = await res.json();
@@ -367,44 +367,50 @@ function onGlobalSearch(query) {
 
   clearTimeout(searchTimer);
   if (!query.trim()) { hideSearchResults(); return; }
-  if (query.length < 2) return;
+  if (query.length < 3) return;  // require 3 chars to reduce server load
 
-  searchTimer = setTimeout(() => { runSearch(query.trim()).catch(e => console.error("Search error:", e)); }, 300);
+  searchTimer = setTimeout(() => { runSearch(query.trim()).catch(e => console.error("Search error:", e)); }, 350);
 }
 
 async function runSearch(query) {
   srResultCache = [];
   const resultsEl = document.getElementById("search-results");
   if (!searchReady) {
-    resultsEl.innerHTML = `<div class="sr-no-results">Search index not loaded yet. Try browsing folders below.</div>`;
+    resultsEl.innerHTML = `<div class="sr-no-results">Search is starting up. Try again in a moment.</div>`;
     showSearchResults();
     return;
   }
+
   resultsEl.innerHTML = `<div class="sr-loading">&#128269; Searching&#8230;</div>`;
   showSearchResults();
-  const q = query.toLowerCase();
-  let allMatches = [];
-  for (const section of ROOT_FOLDERS) {
-    const loaded = await ensureSectionLoaded(section.key);
-    if (!loaded) continue;
-    const files = sectionIndexes[section.key] || [];
-    const hits  = files.filter(f => f.n.toLowerCase().includes(q)).map(f => ({ ...f, s: section.key }));
-    allMatches = allMatches.concat(hits);
-    if (allMatches.length > 200) break;
-  }
-  const total   = allMatches.length;
-  const matches = allMatches.slice(0, 50);
-  if (matches.length === 0) {
-    resultsEl.innerHTML = `<div class="sr-no-results">No files found matching "<strong>${escHtml(query)}</strong>"</div>`;
-    showSearchResults();
-  } else {
-    let html = `<div class="sr-count">Showing ${matches.length.toLocaleString()} of ${total.toLocaleString()}+ results for "<strong>${escHtml(query)}</strong>"</div>`;
+
+  // Track this search so a slow earlier search can't overwrite a newer one
+  const thisSearch = ++window._searchSeq;
+
+  try {
+    const res  = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=50`);
+    const data = await res.json();
+
+    // If a newer search started while this was in flight, discard these results
+    if (thisSearch !== window._searchSeq) return;
+
+    const matches = data.results || [];
+    const total   = data.total || 0;
+
+    if (matches.length === 0) {
+      resultsEl.innerHTML = `<div class="sr-no-results">No files found matching "<strong>${escHtml(query)}</strong>"</div>`;
+      showSearchResults();
+      return;
+    }
+
+    let html = `<div class="sr-count">Showing ${matches.length.toLocaleString()} of ${total.toLocaleString()}${data.capped ? "+" : ""} results for "<strong>${escHtml(query)}</strong>"</div>`;
+
     html += matches.map(f => {
       const highlighted = f.n.replace(new RegExp("(" + escRegex(query) + ")", "gi"), "<span class=\"sr-highlight\">$1</span>");
       const section     = ROOT_FOLDERS.find(r => r.key === f.s);
       const sectionName = section ? section.name : f.s;
       const color       = SECTION_COLORS[f.s] || "#1F4E79";
-      const fullPath    = f.s + "/" + f.p;
+      // p is relative path within section
       const parentRel   = f.p.includes("/") ? f.p.substring(0, f.p.lastIndexOf("/")) : "";
       const folderFull  = parentRel ? f.s + "/" + parentRel : f.s;
       const folderDisp  = parentRel ? parentRel.split("/").join(" › ") : sectionName;
@@ -418,10 +424,14 @@ async function runSearch(query) {
         </div>
       </div>`;
     }).join("");
+
     if (total > 50) html += `<div class="sr-count">Refine your search to see more results.</div>`;
     resultsEl.innerHTML = html;
+    showSearchResults();
+  } catch (err) {
+    resultsEl.innerHTML = `<div class="sr-no-results">Search error: ${escHtml(err.message)}</div>`;
+    showSearchResults();
   }
-  resultsEl.classList.add("visible");
 }
 
 function clearGlobalSearch() {
