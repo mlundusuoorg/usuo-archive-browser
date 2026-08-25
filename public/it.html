@@ -321,6 +321,42 @@ Get-ChildItem -Path <span class="keyword">$SourceRoot</span> -Directory | ForEac
     </div>
   </div>
 
+  <!-- ── SECTION: CSMS BACKUP ── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-icon">💾</span>
+      <h2>CSMS Nightly Backup — IT Access Only</h2>
+    </div>
+    <div class="section-body">
+      <p style="font-size:14px;color:#374151;margin-bottom:16px">
+        Automatic nightly backup of <code>M:\Invoices</code> and <code>M:\ShopCSMS_Images</code> from PSWEB01V.
+        Runs every night at <strong>10:15 PM</strong> in add-only mode — new and changed files are uploaded,
+        deletions on the M: drive are kept in Azure as a safety net.
+      </p>
+      <div class="download-row">
+        <div class="download-info">
+          <div class="download-name">📂 Browse Invoices Backup</div>
+          <div class="download-desc">View and download files backed up from M:\Invoices.</div>
+        </div>
+        <button class="card-btn btn-green" onclick="browseFolder('Invoices')">📂 Browse Files</button>
+      </div>
+      <div class="download-row">
+        <div class="download-info">
+          <div class="download-name">📂 Browse ShopCSMS_Images Backup</div>
+          <div class="download-desc">View and download files backed up from M:\ShopCSMS_Images.</div>
+        </div>
+        <button class="card-btn btn-green" onclick="browseFolder('ShopCSMS_Images')">📂 Browse Files</button>
+      </div>
+      <div id="csms-browser" style="margin-top:16px;display:none">
+        <div id="csms-content">
+          <div style="text-align:center;padding:40px;color:#6b7280">
+            <div class="spinner" style="margin:0 auto 12px"></div>Loading…
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── SECTION 4: REFERENCE ── -->
   <div class="section">
     <div class="section-header">
@@ -437,6 +473,71 @@ let danduPath = "DandU";
 async function browseDandU() {
   document.getElementById("dandu-browser").style.display = "block";
   await loadDandU(danduPath);
+}
+
+// General-purpose IT folder browser (for CSMS backup folders)
+async function browseFolder(rootFolder) {
+  document.getElementById("csms-browser").style.display = "block";
+  await loadCsmsFolder(rootFolder);
+}
+
+async function loadCsmsFolder(path) {
+  const el = document.getElementById("csms-content");
+  el.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7280"><div class="spinner" style="margin:0 auto 12px"></div>Loading…</div>';
+  try {
+    const params = new URLSearchParams({ prefix: path + "/" });
+    const res    = await fetch('/api/listblobs?' + params);
+    const data   = await res.json();
+    const items  = data.items || [];
+    const folders = items.filter(i=> i.isFolder).sort((a,b)=>a.name.localeCompare(b.name));
+    const files   = items.filter(i=>!i.isFolder).sort((a,b)=>a.name.localeCompare(b.name));
+    const sorted  = [...folders, ...files];
+
+    // Breadcrumb — root is the top folder name
+    const rootName = path.split("/")[0];
+    const parts = path.split("/").slice(1);
+    let bc = `<span style="color:#2E75B6;cursor:pointer" onclick="loadCsmsFolder('${rootName}')">📁 ${rootName}</span>`;
+    let built = rootName;
+    parts.forEach(p => {
+      built += "/" + p;
+      const b = built;
+      bc += ` › <span style="color:#2E75B6;cursor:pointer" onclick="loadCsmsFolder('${b}')">${p}</span>`;
+    });
+
+    let html = `<div style="margin-bottom:12px;font-size:13px">${bc}</div>`;
+    html += '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">';
+    if (!sorted.length) {
+      html += '<div style="padding:32px;text-align:center;color:#6b7280">This folder is empty</div>';
+    } else {
+      sorted.forEach(item => {
+        if (item.isFolder) {
+          html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f3f4f6;cursor:pointer"
+                       onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background=''"
+                       onclick="loadCsmsFolder('${item.path}')">
+            <span style="font-size:18px">📁</span>
+            <span style="font-size:14px;color:#1F4E79;font-weight:500">${item.name}</span>
+          </div>`;
+        } else {
+          const p = item.path.replace(/'/g,"\\'");
+          const n = item.name.replace(/'/g,"\\'");
+          const size = item.size ? (item.size < 1048576 ? (item.size/1024).toFixed(1)+' KB' : (item.size/1048576).toFixed(1)+' MB') : '—';
+          html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f3f4f6;cursor:pointer"
+                       onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''"
+                       onclick="downloadDoc('${p}','${n}')">
+            <span style="font-size:18px">📄</span>
+            <span style="font-size:14px;flex:1;color:#1f2937">${item.name}</span>
+            <span style="font-size:12px;color:#6b7280">${size}</span>
+            <button style="padding:4px 10px;background:#DEEAF1;color:#1F4E79;border:none;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer"
+                    onclick="event.stopPropagation();downloadDoc('${p}','${n}')">⬇ Download</button>
+          </div>`;
+        }
+      });
+    }
+    html += '</div>';
+    el.innerHTML = html;
+  } catch(err) {
+    el.innerHTML = '<div style="color:#dc2626;padding:16px">Failed to load: ' + err.message + '</div>';
+  }
 }
 
 async function loadDandU(path) {
