@@ -209,7 +209,7 @@
 
       <div class="alert alert-warn">
         <span class="alert-icon">⚠️</span>
-        <span>The SAS token in the script expires <strong>August 31, 2026</strong>. After that date, generate a new SAS token and update the <code>$SAS</code> variable in the script. Also update <code>$AzCopy</code> if AzCopy moves to a new location.</span>
+        <span>The SAS token in the script expires <strong>August 25, 2028</strong>. After that date, generate a new SAS token and update the <code>$SAS</code> variable in the script. Also update <code>$AzCopy</code> if AzCopy moves to a new location.</span>
       </div>
 
       <h3 style="font-size:15px;font-weight:600;color:#1F4E79;margin:20px 0 12px">Steps to rebuild the index</h3>
@@ -258,7 +258,7 @@ C:\Temp\Build-ArchiveSearchIndex.ps1</pre>
       <div class="code-block">
         <button class="copy-btn" onclick="copyCode(this)">Copy</button>
         <pre><span class="comment"># Template — replace SOURCE_PATH and DEST_FOLDER</span>
-<span class="keyword">$SAS</span> = <span style="color:#ce9178">"?sv=2026-02-06&ss=bfqt&srt=co&sp=rwdlacupiytfx&se=2026-08-31T23:51:41Z&st=2026-08-19T15:59:10Z&spr=https&sig=lk7OQyxeGTSjbevHEL5UdyDEiJlgoJuXBs6kgibZJxg%3D"</span>
+<span class="keyword">$SAS</span> = <span style="color:#ce9178">"?sv=2026-02-06&ss=bfqt&srt=co&sp=rwdlacupiytfx&se=2028-08-25T23:51:41Z&st=2026-08-19T15:59:10Z&spr=https&sig=lk7OQyxeGTSjbevHEL5UdyDEiJlgoJuXBs6kgibZJxg%3D"</span>
 
 C:\Tools\AzCopy\azcopy.exe copy <span style="color:#ce9178">"D:\SOURCE_PATH\*"</span> `
   <span style="color:#ce9178">"https://usuoarchive.blob.core.windows.net/usuo-archive/DEST_FOLDER$SAS"</span> `
@@ -374,7 +374,7 @@ Get-ChildItem -Path <span class="keyword">$SourceRoot</span> -Directory | ForEac
         <tr><td>GitHub repo</td><td><a href="https://github.com/mlundusuoorg/usuo-archive-browser" target="_blank" style="color:#2E75B6">github.com/mlundusuoorg/usuo-archive-browser</a></td></tr>
         <tr><td>Entra ID app</td><td>USUO Archive Browser — App ID: 155784c5-d9ae-4add-83e0-272977943b8b</td></tr>
         <tr><td>Access group</td><td><code>USUO-Archive-Readers</code> — Entra ID Security Group</td></tr>
-        <tr><td>SAS token expiry</td><td><span class="expiry-badge">⏰ August 31, 2026</span> — regenerate before this date</td></tr>
+        <tr><td>SAS token expiry</td><td><span class="expiry-badge">⏰ August 25, 2028</span> — regenerate before this date</td></tr>
         <tr><td>AzCopy location</td><td><code>C:\Tools\AzCopy\azcopy.exe</code> on PSFS01v23, PSFS02V, AHFS02V</td></tr>
         <tr><td>Archive sections</td><td>ProdShared, Share, PS-Archive, AH-Archive</td></tr>
         <tr><td>HR restricted folder group</td><td><code>USUO-Archive-HR</code> — ID: 06c7f5d4-b5f4-4f06-81c3-d8f9a1c778f0</td></tr>
