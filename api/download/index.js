@@ -22,7 +22,7 @@ module.exports = async function (context, req) {
   }
 
   const preview     = req.query.preview === "1";
-  const sasClean    = sas.startsWith("?") ? sas : `?${sas}`;
+  const sasClean    = sas.startsWith("?") ? decodeURIComponent(sas) : `?${decodeURIComponent(sas)}`;
   const encodedPath = blobPath.split("/").map(encodeURIComponent).join("/");
   const fileName    = blobPath.split("/").pop();
 

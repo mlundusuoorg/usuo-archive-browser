@@ -33,7 +33,7 @@ module.exports = async function (context, req) {
 
   // Build Azure Blob List URL
   // https://docs.microsoft.com/en-us/rest/api/storageservices/list-blobs
-  const sasClean  = sas.startsWith("?") ? sas.slice(1) : sas;
+  const sasClean  = decodeURIComponent(sas.startsWith("?") ? sas.slice(1) : sas);
   const listUrl   = `https://${account}.blob.core.windows.net/${container}` +
                     `?restype=container&comp=list` +
                     `&prefix=${encodeURIComponent(prefix)}` +
