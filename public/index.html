@@ -572,10 +572,16 @@ function renderRoot() {
   </div>`;
   document.getElementById("main-content").innerHTML = html;
 }
-function goRoot() { renderRoot(); }
+function goRoot() {
+  window.history.pushState({}, "", window.location.pathname);
+  renderRoot();
+}
 
 // ── Folder view ───────────────────────────────────────────────────────────────
 async function navigateTo(path) {
+  // Update the URL so the current folder is bookmarkable/shareable
+  const newUrl = path ? window.location.pathname + "?path=" + encodeURIComponent(path) : window.location.pathname;
+  window.history.pushState({ path }, "", newUrl);
   currentPath = path;
   document.getElementById("folder-search-input").value = "";
   document.getElementById("folder-toolbar").style.display = "flex";
@@ -888,6 +894,16 @@ document.addEventListener("keydown", e => {
   }
 });
 
+
+// Handle browser back/forward buttons
+window.addEventListener("popstate", function(e) {
+  if (e.state && e.state.path) {
+    navigateTo(e.state.path);
+  } else {
+    renderRoot();
+  }
+});
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   const principal = await checkAuth();
@@ -910,7 +926,14 @@ async function init() {
   currentUserId = principal.userDetails;  // email address — needed for Graph API lookup
   loadAccessCheck(currentUserId);
 
-  renderRoot();
+  // Check for deep-link: ?path=PS-Archive/Education/Archive
+  const urlParams = new URLSearchParams(window.location.search);
+  const deepPath  = urlParams.get("path");
+  if (deepPath) {
+    navigateTo(deepPath);
+  } else {
+    renderRoot();
+  }
 }
 
 init();
