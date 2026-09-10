@@ -911,6 +911,31 @@ async function init() {
     document.getElementById("login-screen").style.display = "flex";
     return;
   }
+  // Enforce USUO-only access — reject non-@usuo.org accounts
+  const userEmail = (principal.userDetails || "").toLowerCase();
+  if (!userEmail.endsWith("@usuo.org")) {
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app-screen").style.display = "none";
+    document.body.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f3f4f6;padding:40px">
+        <div style="background:#fff;border-radius:12px;padding:48px 40px;max-width:480px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08)">
+          <div style="font-size:48px;margin-bottom:16px">🚫</div>
+          <h2 style="color:#C62828;font-size:22px;margin-bottom:12px">Access Denied</h2>
+          <p style="color:#374151;font-size:15px;line-height:1.6;margin-bottom:24px">
+            This portal is restricted to Utah Symphony | Utah Opera staff.<br>
+            Only <strong>@usuo.org</strong> accounts are permitted.<br><br>
+            You signed in as: <strong>${userEmail || "unknown"}</strong>
+          </p>
+          <a href="/.auth/logout?post_logout_redirect_uri=/" 
+             style="display:inline-block;padding:12px 24px;background:#1F4E79;color:#fff;
+                    border-radius:6px;font-size:15px;font-weight:600;text-decoration:none">
+            Sign Out
+          </a>
+        </div>
+      </div>`;
+    return;
+  }
+
   const name    = principal.userDetails || principal.userId || "User";
   const initials= name.split(" ").map(p=>p[0]).join("").toUpperCase().slice(0,2);
   document.getElementById("user-name").textContent   = name;
