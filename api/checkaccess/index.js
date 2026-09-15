@@ -10,6 +10,8 @@ const RESTRICTED_FOLDERS = {
   "PS-Archive/HR Share": "0cb2df7f-33db-49bb-bf9d-f6bbeb65ce9e",
 };
 
+const WRITERS_GROUP_ID = "982ef16b-2172-4c68-800f-8bcd4548a1de";
+
 // Cache tokens for 55 minutes
 let cachedToken = null;
 let tokenExpiry = 0;
@@ -73,10 +75,13 @@ module.exports = async function (context, req) {
 
     const allowedFolders = checks.filter(c => c.isMember).map(c => c.folder);
 
+    // Check if user is in the Writers group
+    const isWriter = await isMemberOfGroup(token, entraUserId, WRITERS_GROUP_ID);
+
     context.res = {
       status: 200,
       headers: { "Content-Type": "application/json", "Cache-Control": "private, max-age=300" },
-      body: { allowedFolders, restrictedFolders: Object.keys(RESTRICTED_FOLDERS) },
+      body: { allowedFolders, restrictedFolders: Object.keys(RESTRICTED_FOLDERS), isWriter },
     };
   } catch (err) {
     context.res = { status: 500, body: { error: err.message } };

@@ -122,6 +122,10 @@
             background:#E8EAF6;color:#3949AB;border:none;border-radius:4px;
             font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
     .pv-btn:hover{background:#C5CAE9}
+    .del-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;
+             background:#FFEBEE;color:#C62828;border:none;border-radius:4px;
+             font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+    .del-btn:hover{background:#FFCDD2}
     .zip-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
              background:#FFF3E0;color:#E65100;border:none;border-radius:4px;
              font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
@@ -301,6 +305,7 @@ let srResultCache  = [];  // stores folder paths for search result clicks
 const RESTRICTED_FOLDERS = ["PS-Archive/HR", "PS-Archive/HR Share"];
 let userAllowedFolders   = null;  // null = not yet loaded, [] = loaded but no access
 let accessCheckDone      = false;
+let isWriter             = false;  // USUO-Archive-Writers group member
 let currentUserId        = null;
 window._searchSeq        = 0;  // guards against out-of-order search results
 
@@ -628,7 +633,7 @@ function renderItems(items) {
   }
 
   let rows = "";
-  if (isDigital) {
+  if (isDigital || isWriter) {
     rows += `<div id="upload-zone" style="border:2px dashed #a5d6a7;border-radius:8px;padding:20px 24px;
                   margin:16px;background:#F1F8E9;cursor:pointer;transition:all .15s;text-align:center"
                   onclick="document.getElementById('file-input').click()"
@@ -675,6 +680,8 @@ function renderItems(items) {
             onclick="event.stopPropagation();openPreview('${p}','${n}')">👁 Preview</button>` : ``}
           <button class="dl-btn"
             onclick="event.stopPropagation();downloadFile('${p}','${n}')">⬇ Download</button>
+          ${isWriter ? `<button class="del-btn" title="Delete this file"
+            onclick="event.stopPropagation();deleteFile('${p}','${n}')">🗑</button>` : ``}
         </div>
       </div>`;
     }
@@ -719,7 +726,8 @@ async function handleFileSelect(files) {
     progress.innerHTML = `Uploading ${done + 1} of ${total}: <strong>${file.name}</strong>…`;
     const blobPath = currentPath + "/" + file.name;
     try {
-      const res = await fetch("/api/upload?path=" + encodeURIComponent(blobPath), {
+      const uploadUrl = "/api/upload?path=" + encodeURIComponent(blobPath) + "&userEmail=" + encodeURIComponent(currentUserId);
+      const res = await fetch(uploadUrl, {
         method: "POST",
         headers: { "Content-Type": file.type || "application/octet-stream" },
         body: file,
@@ -752,6 +760,7 @@ async function loadAccessCheck(userId) {
     const res  = await fetch(`/api/checkaccess?userEmail=${encodeURIComponent(userId)}`);  // userId here is actually the email
     const data = await res.json();
     userAllowedFolders = data.allowedFolders || [];
+    isWriter = data.isWriter === true;
   } catch {
     userAllowedFolders = [];
   }
@@ -774,6 +783,28 @@ function isAccessible(itemPath) {
   return true;
 }
 
+
+
+// ── Delete file (Writers only) ────────────────────────────────────────────────
+async function deleteFile(path, name) {
+  if (!isWriter) return;
+  if (!confirm(`Are you sure you want to permanently delete:\n\n${name}\n\nThis cannot be undone.`)) return;
+
+  try {
+    const res = await fetch(`/api/deletefile?path=${encodeURIComponent(path)}&userEmail=${encodeURIComponent(currentUserId)}`, {
+      method: "DELETE"
+    });
+    const data = await res.json();
+    if (data.success) {
+      // Refresh the current folder
+      navigateTo(currentPath);
+    } else {
+      alert("Delete failed: " + (data.error || "Unknown error"));
+    }
+  } catch (err) {
+    alert("Delete failed: " + err.message);
+  }
+}
 
 // ── File Preview ──────────────────────────────────────────────────────────────
 function isPreviewable(name, path) {
