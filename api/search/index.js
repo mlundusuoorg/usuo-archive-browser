@@ -12,7 +12,7 @@
 
 const https = require("https");
 
-const SECTIONS = ["ProdShared", "Share", "PS-Archive", "AH-Archive", "Digital-Assets"];
+const SECTIONS = ["ProdShared", "Share", "PS-Archive", "AH-Archive", "Digital-Assets", "Finance-Archive"];
 
 // In-memory cache of loaded section indexes. Persists across warm invocations.
 const indexCache = {};        // { sectionKey: [ {n, p}, ... ] }
