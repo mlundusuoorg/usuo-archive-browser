@@ -843,7 +843,7 @@ async function loadThumbnails() {
     const chunk = Array.from(thumbs).slice(i, i + batch);
     await Promise.all(chunk.map(async (img) => {
       const path = img.dataset.path;
-      if (!path || img.src) return;
+      if (!path || img.dataset.loaded) return;
       try {
         let url = thumbCache[path];
         if (!url) {
@@ -853,6 +853,7 @@ async function loadThumbnails() {
           thumbCache[path] = url;
         }
         img.src = url;
+        img.dataset.loaded = "1";
         img.onerror = function() { this.style.display = "none"; };
         const hoverImg = img.parentElement.querySelector(".thumb-hover img");
         if (hoverImg) hoverImg.src = url;
