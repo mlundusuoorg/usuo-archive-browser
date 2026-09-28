@@ -831,18 +831,19 @@ async function deleteFile(path, name) {
 }
 
 
-// ── Thumbnail loading (lazy via IntersectionObserver) ─────────────────────────
+// ── Thumbnail loading ─────────────────────────────────────────────────────────
 const thumbCache = {};
 async function loadThumbnails() {
   const thumbs = document.querySelectorAll(".thumb-img[data-path]");
   if (!thumbs.length) return;
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(async (entry) => {
-      if (!entry.isIntersecting) return;
-      observer.unobserve(entry.target);
-      const img  = entry.target;
+
+  // Load thumbnails in batches of 5 to avoid overwhelming the API
+  const batch = 5;
+  for (let i = 0; i < thumbs.length; i += batch) {
+    const chunk = Array.from(thumbs).slice(i, i + batch);
+    await Promise.all(chunk.map(async (img) => {
       const path = img.dataset.path;
-      if (!path) return;
+      if (!path || img.src) return;
       try {
         let url = thumbCache[path];
         if (!url) {
@@ -852,12 +853,14 @@ async function loadThumbnails() {
           thumbCache[path] = url;
         }
         img.src = url;
+        img.onerror = function() { this.style.display = "none"; };
         const hoverImg = img.parentElement.querySelector(".thumb-hover img");
         if (hoverImg) hoverImg.src = url;
-      } catch { }
-    });
-  }, { rootMargin: "200px" });
-  thumbs.forEach(t => observer.observe(t));
+      } catch { 
+        img.style.display = "none";
+      }
+    }));
+  }
 }
 
 // ── File Preview ──────────────────────────────────────────────────────────────
