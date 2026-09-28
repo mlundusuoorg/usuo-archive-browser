@@ -297,6 +297,7 @@ const ROOT_FOLDERS = [
   { key:"ProdShared",     icon:"📂", name:"ProdShared Archive", desc:"Old P: drive pre 2012 files", readOnly:true },
   { key:"Share",          icon:"📂", name:"Share Archive",      desc:"Old S: drive pre 2012 files", readOnly:true },
   { key:"Digital-Assets", icon:"🎨", name:"Digital Assets",     desc:"Read/write shared digital assets — upload, download, and overwrite files", readOnly:false },
+  { key:"Finance-Archive", icon:"💰", name:"Finance Archive",  desc:"Restricted finance files — authorized personnel only", readOnly:true, restricted:true },
 ];
 
 const SECTION_COLORS = {
@@ -305,13 +306,14 @@ const SECTION_COLORS = {
   "PS-Archive": "#6A1B9A",
   "AH-Archive": "#B71C1C",
   "Digital-Assets": "#2E7D32",
+  "Finance-Archive": "#E65100",
 };
 
 let currentPath    = null;
 let srResultCache  = [];  // stores folder paths for search result clicks
 
 // ── Restricted folder access ──────────────────────────────────────────────────
-const RESTRICTED_FOLDERS = ["PS-Archive/HR", "PS-Archive/HR Share"];
+const RESTRICTED_FOLDERS = ["PS-Archive/HR", "PS-Archive/HR Share", "Finance-Archive"];
 let userAllowedFolders   = null;  // null = not yet loaded, [] = loaded but no access
 let accessCheckDone      = false;
 let isWriter             = false;  // USUO-Archive-Writers group member
@@ -582,11 +584,17 @@ function renderRoot() {
   document.getElementById("folder-search-input").value = "";
   document.getElementById("folder-toolbar").style.display = "none";
 
+  // Filter out restricted tiles the user can't access
+  const visibleTiles = ROOT_FOLDERS.filter(f => {
+    if (!f.restricted) return true;
+    return userAllowedFolders && userAllowedFolders.includes(f.key);
+  });
+
   const html = `<div class="root-grid">
-    ${ROOT_FOLDERS.map(f => `
-      <div class="root-card" onclick="navigateTo('${f.key}')">
+    ${visibleTiles.map(f => `
+      <div class="root-card" onclick="navigateTo('${f.key}')" ${f.restricted ? 'style="border:2px solid #E65100"' : ''}>
         <div class="root-card-icon">${f.icon}</div>
-        <div class="root-card-name">${f.name}${!f.readOnly ? ' <span style="font-size:11px;background:#E8F5E9;color:#2E7D32;padding:2px 7px;border-radius:10px;font-weight:600;vertical-align:middle">READ/WRITE</span>' : ''}</div>
+        <div class="root-card-name">${f.name}${!f.readOnly ? ' <span style="font-size:11px;background:#E8F5E9;color:#2E7D32;padding:2px 7px;border-radius:10px;font-weight:600;vertical-align:middle">READ/WRITE</span>' : ''}${f.restricted ? ' <span style="font-size:11px;background:#FFF3E0;color:#E65100;padding:2px 7px;border-radius:10px;font-weight:600;vertical-align:middle">RESTRICTED</span>' : ''}</div>
         <div class="root-card-desc">${f.desc}</div>
       </div>`).join("")}
   </div>`;
@@ -880,7 +888,7 @@ function isPreviewable(name, path) {
 function isSensitivePath(path) {
   if (!path) return true; // fail safe — if unknown, treat as sensitive
   const lower = path.toLowerCase();
-  const blocked = ["/hr", "hr share", "/finance", "/payroll", "/accounting"];
+  const blocked = ["/hr", "hr share", "/finance", "/payroll", "/accounting", "finance-archive"];
   return blocked.some(b => lower.includes(b));
 }
 

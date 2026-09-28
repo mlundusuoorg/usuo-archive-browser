@@ -8,6 +8,7 @@ const https = require("https");
 const RESTRICTED_FOLDERS = {
   "PS-Archive/HR":       "06c7f5d4-b5f4-4f06-81c3-d8f9a1c778f0",
   "PS-Archive/HR Share": "0cb2df7f-33db-49bb-bf9d-f6bbeb65ce9e",
+  "Finance-Archive":     "d836a263-c9d8-4172-a2a9-1d35fcc6c98a",
 };
 
 const WRITERS_GROUP_ID = "982ef16b-2172-4c68-800f-8bcd4548a1de";
