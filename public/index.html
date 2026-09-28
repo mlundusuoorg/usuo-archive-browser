@@ -261,7 +261,7 @@
     <div class="global-search-wrap">
       <span class="global-search-icon">🔍</span>
       <input class="global-search-input" id="global-search"
-             type="text" placeholder="Search all archives by file name (type 3+ letters)…"
+             type="text" placeholder="Navigate into a section to search…"
              oninput="onGlobalSearch(this.value)"
              autocomplete="off" />
       <button class="global-search-clear" id="search-clear"
@@ -418,6 +418,13 @@ function onGlobalSearch(query) {
   if (!query.trim()) { hideSearchResults(); return; }
   if (query.length < 3) return;  // require 3 chars to reduce server load
 
+  // Don't search from the home page — must be inside a section
+  if (!currentPath) {
+    document.getElementById("search-results").innerHTML = `<div class="sr-no-results">Please navigate into a section first, then search within it.</div>`;
+    showSearchResults();
+    return;
+  }
+
   searchTimer = setTimeout(() => { runSearch(query.trim()).catch(e => console.error("Search error:", e)); }, 350);
 }
 
@@ -437,7 +444,12 @@ async function runSearch(query) {
   const thisSearch = ++window._searchSeq;
 
   try {
-    const res  = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=50`);
+    // Determine which section we're in
+    const currentSection = currentPath ? currentPath.split("/")[0] : null;
+    const searchUrl = currentSection
+      ? `/api/search?q=${encodeURIComponent(query)}&limit=50&section=${encodeURIComponent(currentSection)}`
+      : `/api/search?q=${encodeURIComponent(query)}&limit=50`;
+    const res  = await fetch(searchUrl);
     const data = await res.json();
 
     // If a newer search started while this was in flight, discard these results
@@ -603,6 +615,8 @@ function renderRoot() {
 function goRoot() {
   window.history.pushState({}, "", window.location.pathname);
   renderRoot();
+  // Disable search on home page
+  document.getElementById("global-search").placeholder = "Navigate into a section to search…";
 }
 
 // ── Folder view ───────────────────────────────────────────────────────────────
@@ -610,6 +624,16 @@ async function navigateTo(path) {
   // Update the URL so the current folder is bookmarkable/shareable
   const newUrl = path ? window.location.pathname + "?path=" + encodeURIComponent(path) : window.location.pathname;
   window.history.pushState({ path }, "", newUrl);
+
+  // Update search placeholder to show section-specific search
+  const section = path ? path.split("/")[0] : null;
+  const sectionInfo = section ? ROOT_FOLDERS.find(r => r.key === section) : null;
+  const searchInput = document.getElementById("global-search");
+  if (sectionInfo) {
+    searchInput.placeholder = `Search ${sectionInfo.name} by file name (type 3+ letters)…`;
+  } else {
+    searchInput.placeholder = "Navigate into a section to search…";
+  }
   currentPath = path;
   document.getElementById("folder-search-input").value = "";
   document.getElementById("folder-toolbar").style.display = "flex";

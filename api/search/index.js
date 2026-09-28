@@ -50,20 +50,24 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const q     = (req.query.q || "").trim().toLowerCase();
-  const limit = Math.min(parseInt(req.query.limit || "50", 10), 100);
+  const q       = (req.query.q || "").trim().toLowerCase();
+  const limit   = Math.min(parseInt(req.query.limit || "50", 10), 100);
+  const section = req.query.section || null;  // optional: restrict to one section
 
   if (q.length < 2) {
     context.res = { status: 200, body: { results: [], total: 0, query: q } };
     return;
   }
 
+  // If a section is specified, only search that section
+  const sectionsToSearch = section ? [section] : SECTIONS;
+
   try {
     let allMatches = [];
     let totalCount = 0;
 
     // Search each section — stop early once we have plenty
-    for (const section of SECTIONS) {
+    for (const section of sectionsToSearch) {
       const files = await loadSection(account, container, sas, section);
 
       for (const f of files) {
