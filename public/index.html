@@ -109,6 +109,15 @@
     .fl-item.folder:hover{background:#EFF6FF}
     .file-name{display:flex;align-items:center;gap:10px;font-size:14px}
     .file-icon{font-size:18px;flex-shrink:0}
+    .thumb-wrap{position:relative;display:inline-flex;align-items:center;flex-shrink:0}
+    .thumb-img{width:36px;height:36px;object-fit:cover;border-radius:4px;border:1px solid #e5e7eb;
+               cursor:pointer;transition:border-color .15s;background:#f9fafb}
+    .thumb-img:hover{border-color:#2E75B6}
+    .thumb-hover{display:none;position:absolute;left:44px;top:50%;transform:translateY(-50%);
+                 z-index:50;background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.25);
+                 padding:4px;pointer-events:none}
+    .thumb-wrap:hover .thumb-hover{display:block}
+    .thumb-hover img{max-width:320px;max-height:320px;display:block;border-radius:6px}
     .file-label{color:#1f2937}
     .folder .file-label{color:#1F4E79;font-weight:500}
     .file-date{font-size:13px;color:#6b7280}
@@ -369,6 +378,10 @@ async function loadSearchIndex() {
     masterIndex = await res.json();
     const count = (masterIndex.total || 0).toLocaleString();
     status.textContent = `Search ready — ${count} files indexed`;
+
+  // Load image thumbnails lazily
+  setTimeout(loadThumbnails, 50);
+
     document.getElementById("global-search").placeholder =
       `Search all ${count} archived files by name…`;
     searchReady = true;
@@ -519,6 +532,11 @@ async function downloadFile(path, name) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+const THUMB_EXTS = ["jpg","jpeg","png","gif","webp","svg"];
+function isThumbable(name) {
+  return THUMB_EXTS.includes(name.split(".").pop().toLowerCase());
+}
+
 function getIcon(name, isFolder) {
   if (isFolder) return "📁";
   const ext = name.split(".").pop().toLowerCase();
@@ -670,8 +688,14 @@ function renderItems(items) {
       const p = item.path.replace(/'/g,"\\'");
       const n = item.name.replace(/'/g,"\\'");
       const previewable = isPreviewable(item.name, item.path);
+      const thumbable   = isThumbable(item.name);
       rows += `<div class="fl-item" onclick="downloadFile('${p}','${n}')">
-        <div class="file-name"><span class="file-icon">${icon}</span>
+        <div class="file-name">${thumbable
+          ? `<div class="thumb-wrap">
+               <img class="thumb-img" data-path="${item.path}" src="" alt="" loading="lazy"/>
+               <div class="thumb-hover"><img src="" alt=""/></div>
+             </div>`
+          : `<span class="file-icon">${icon}</span>`}
           <span class="file-label">${item.name}</span></div>
         <div class="file-date">${fmtDate(item.lastModified)}</div>
         <div class="file-size">
@@ -804,6 +828,36 @@ async function deleteFile(path, name) {
   } catch (err) {
     alert("Delete failed: " + err.message);
   }
+}
+
+
+// ── Thumbnail loading (lazy via IntersectionObserver) ─────────────────────────
+const thumbCache = {};
+async function loadThumbnails() {
+  const thumbs = document.querySelectorAll(".thumb-img[data-path]");
+  if (!thumbs.length) return;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(async (entry) => {
+      if (!entry.isIntersecting) return;
+      observer.unobserve(entry.target);
+      const img  = entry.target;
+      const path = img.dataset.path;
+      if (!path) return;
+      try {
+        let url = thumbCache[path];
+        if (!url) {
+          const res  = await fetch("/api/download?path=" + encodeURIComponent(path) + "&preview=1");
+          const data = await res.json();
+          url = data.url;
+          thumbCache[path] = url;
+        }
+        img.src = url;
+        const hoverImg = img.parentElement.querySelector(".thumb-hover img");
+        if (hoverImg) hoverImg.src = url;
+      } catch { }
+    });
+  }, { rootMargin: "200px" });
+  thumbs.forEach(t => observer.observe(t));
 }
 
 // ── File Preview ──────────────────────────────────────────────────────────────
