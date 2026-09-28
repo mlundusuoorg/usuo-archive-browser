@@ -455,8 +455,13 @@ async function runSearch(query) {
     // If a newer search started while this was in flight, discard these results
     if (thisSearch !== window._searchSeq) return;
 
-    const matches = data.results || [];
-    const total   = data.total || 0;
+    const rawMatches = data.results || [];
+    // Filter out restricted folders (HR, HR Share) the user can't access
+    const matches = rawMatches.filter(f => {
+      const fullPath = f.s + "/" + f.p;
+      return isAccessible(fullPath);
+    });
+    const total = matches.length;
 
     if (matches.length === 0) {
       resultsEl.innerHTML = `<div class="sr-no-results">No files found matching "<strong>${escHtml(query)}</strong>"</div>`;
