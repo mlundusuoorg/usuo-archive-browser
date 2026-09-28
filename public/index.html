@@ -796,8 +796,11 @@ async function loadAccessCheck(userId) {
     userAllowedFolders = [];
   }
   accessCheckDone = true;
-  // Re-render current view if we're inside PS-Archive
-  if (currentPath && currentPath.startsWith("PS-Archive")) {
+  // Re-render based on current view
+  if (!currentPath) {
+    // On the home page — re-render to show/hide restricted tiles
+    renderRoot();
+  } else if (currentPath && currentPath.startsWith("PS-Archive")) {
     renderItems(allItems);
   }
 }
