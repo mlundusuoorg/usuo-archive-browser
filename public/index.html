@@ -576,6 +576,7 @@ function escHtml(s) {
   return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 function escAttr(s) { return s.replace(/'/g,"\\'"); }
+function jsArg(s) { return escHtml(String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'")); }
 function escRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
 
 // ── Breadcrumb ────────────────────────────────────────────────────────────────
@@ -590,7 +591,7 @@ function renderBreadcrumb(path) {
     const b = built;
     html += `<span class="bc-sep">›</span>
              <span class="bc-item ${isCur?"current":""}"
-                   onclick="navigateTo('${b}')">${p}</span>`;
+                   onclick="navigateTo('${jsArg(b)}')">${p}</span>`;
   });
   el.innerHTML = html;
 }
@@ -709,9 +710,9 @@ function renderItems(items) {
   sorted.forEach(item => {
     const icon = getIcon(item.name, item.isFolder);
     if (item.isFolder) {
-      const fp = item.path.replace(/'/g,"\\'");
-      const fn = item.name.replace(/'/g,"\\'");
-      rows += `<div class="fl-item folder" onclick="navigateTo('${item.path}')">
+      const fp = jsArg(item.path);
+      const fn = jsArg(item.name);
+      rows += `<div class="fl-item folder" onclick="navigateTo('${jsArg(item.path)}')">
         <div class="file-name"><span class="file-icon">${icon}</span>
           <span class="file-label">${item.name}</span></div>
         <div class="file-date">—</div>
@@ -721,8 +722,8 @@ function renderItems(items) {
         </div>
       </div>`;
     } else {
-      const p = item.path.replace(/'/g,"\\'");
-      const n = item.name.replace(/'/g,"\\'");
+      const p = jsArg(item.path);
+      const n = jsArg(item.name);
       const previewable = isPreviewable(item.name, item.path);
       const thumbable   = isThumbable(item.name);
       rows += `<div class="fl-item" onclick="downloadFile('${p}','${n}')">
