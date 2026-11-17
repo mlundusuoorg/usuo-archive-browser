@@ -548,6 +548,10 @@ async function downloadFile(path, name) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Escape strings for use in inline onclick handlers
+function jsEsc(s) { return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,"&quot;"); }
+
 const THUMB_EXTS = ["jpg","jpeg","png","gif","webp","svg"];
 function isThumbable(name) {
   return THUMB_EXTS.includes(name.split(".").pop().toLowerCase());
@@ -590,7 +594,7 @@ function renderBreadcrumb(path) {
     const b = built;
     html += `<span class="bc-sep">›</span>
              <span class="bc-item ${isCur?"current":""}"
-                   onclick="navigateTo('${b}')">${p}</span>`;
+                   onclick="navigateTo('${jsEsc(b)}')">${p}</span>`;
   });
   el.innerHTML = html;
 }
@@ -711,7 +715,7 @@ function renderItems(items) {
     if (item.isFolder) {
       const fp = item.path.replace(/'/g,"\\'");
       const fn = item.name.replace(/'/g,"\\'");
-      rows += `<div class="fl-item folder" onclick="navigateTo('${item.path}')">
+      rows += `<div class="fl-item folder" onclick="navigateTo('${jsEsc(item.path)}')">
         <div class="file-name"><span class="file-icon">${icon}</span>
           <span class="file-label">${item.name}</span></div>
         <div class="file-date">—</div>
@@ -725,7 +729,7 @@ function renderItems(items) {
       const n = item.name.replace(/'/g,"\\'");
       const previewable = isPreviewable(item.name, item.path);
       const thumbable   = isThumbable(item.name);
-      rows += `<div class="fl-item" onclick="downloadFile('${p}','${n}')">
+      rows += `<div class="fl-item" onclick="downloadFile('${jsEsc(p)}','${jsEsc(n)}')">
         <div class="file-name">${thumbable
           ? `<div class="thumb-wrap">
                <img class="thumb-img" data-path="${item.path}" src="" alt="" loading="lazy"/>
@@ -739,9 +743,9 @@ function renderItems(items) {
           ${previewable ? `<button class="pv-btn" title="Preview"
             onclick="event.stopPropagation();openPreview('${p}','${n}')">👁 Preview</button>` : ``}
           <button class="dl-btn"
-            onclick="event.stopPropagation();downloadFile('${p}','${n}')">⬇ Download</button>
+            onclick="event.stopPropagation();downloadFile('${jsEsc(p)}','${jsEsc(n)}')">⬇ Download</button>
           ${isWriter ? `<button class="del-btn" title="Delete this file"
-            onclick="event.stopPropagation();deleteFile('${p}','${n}')">🗑</button>` : ``}
+            onclick="event.stopPropagation();deleteFile('${jsEsc(p)}','${jsEsc(n)}')">🗑</button>` : ``}
         </div>
       </div>`;
     }
