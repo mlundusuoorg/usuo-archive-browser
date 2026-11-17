@@ -1,7 +1,7 @@
 /**
  * Azure Static Web Apps API — /api/zipfolder
  * Zips the contents of a folder (under a size cap) and streams it back.
- * Free-tier safe: enforces a 4 GB / 200 file limit to avoid timeouts
+ * Free-tier safe: enforces a 500 MB / 200 file limit to avoid timeouts
  * and memory exhaustion.
  *
  * Query params:
@@ -11,7 +11,7 @@
 const https    = require("https");
 const archiver = require("archiver");
 
-const MAX_BYTES = 4 * 1024 * 1024 * 1024;  // 4 GB
+const MAX_BYTES = 500 * 1024 * 1024;  // 500 MB
 const MAX_FILES = 1000;
 
 module.exports = async function (context, req) {
